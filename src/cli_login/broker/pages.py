@@ -89,12 +89,18 @@ class ApprovalPages:
         privileges: str,
         scope: str = "openid email profile",
         identity_provider: str | None = None,
+        prepare: Callable[[str, Mapping], tuple[str, str]] | None = None,
         token=secrets.token_urlsafe,
     ):
+        """``prepare(transaction, described)``, when given, runs on Approve before the bind and returns the OpenID
+        nonce the sign-in must use and an opaque ``enrollment`` string for the product's own enrollment step (for
+        example a central identity challenge's nonce and its sealed proof). The broker hands both to the CLI with
+        the code; a CLI accepts the nonce only when it asked to enroll."""
         self.invoke, self.authorize_endpoint, self.product = (lambda payload: invoke({**payload, "cli_login": PRIVATE_MARKER})), authorize_endpoint, product
         parts = urlsplit(authorize_endpoint)
         self.form_action = f"'self' {parts.scheme}://{parts.netloc}"
         self.privileges, self.scope, self.identity_provider, self.token = privileges, scope, identity_provider, token
+        self.prepare = prepare
 
     def approve(self, method: str, query: Mapping[str, str], form: Mapping[str, str], cookies: Mapping[str, str]) -> Page:
         if method == "GET":
@@ -114,7 +120,15 @@ class ApprovalPages:
         if not described.get("ok"):
             return _gone()
         nonce = self.token(32)
-        if not self.invoke({"operation": "bind", "transaction": transaction, "nonce_hash": hashlib.sha256(nonce.encode()).hexdigest()}).get("ok"):
+        bind = {"operation": "bind", "transaction": transaction, "nonce_hash": hashlib.sha256(nonce.encode()).hexdigest()}
+        oidc_nonce = described["nonce"]
+        if self.prepare is not None:
+            try:
+                oidc_nonce, enrollment = self.prepare(transaction, described)
+            except Exception:  # noqa: BLE001 - the product's enrollment service is unavailable: nothing is bound
+                return _message(503, "Sign-in is unavailable", "Try the approval link again in a moment.")
+            bind |= {"nonce": oidc_nonce, "enrollment": enrollment}
+        if not self.invoke(bind).get("ok"):
             return _gone()
         query_string = {
             "client_id": described["client_id"],
@@ -122,7 +136,7 @@ class ApprovalPages:
             "redirect_uri": described["redirect_uri"],
             "scope": self.scope,
             "state": f"{transaction}.{nonce}",
-            "nonce": described["nonce"],
+            "nonce": oidc_nonce,
             "code_challenge": described["code_challenge"],
             "code_challenge_method": "S256",
         }

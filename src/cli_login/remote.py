@@ -101,6 +101,7 @@ def remote_login(
     host: str | None = None,
     note: str | None = None,
     expected_email: str | None = None,
+    enroll: Callable[[Mapping[str, Any], str, str | None], Any] | None = None,
     token=secrets.token_urlsafe,
 ):
     """Sign in through the target's broker and return what ``store_token_set`` returns.
@@ -113,6 +114,12 @@ def remote_login(
     Whoever approves first owns the session, and the approval URL and code are often relayed through chat. Pass
     ``expected_email`` to refuse, and store nothing, when the person who approved is someone else. The signed-in
     identity is always printed.
+
+    ``enroll(tokens, transaction, enrollment)``, when given, runs after the exchange and the identity checks and
+    before anything is stored; if it raises, nothing is stored. It is for a product whose sign-in needs its own
+    enrollment of each login (the Cyclotron lab enrolls each Cognito login at Prospectus). Only then does the CLI
+    accept an OpenID nonce chosen by the product's approval page, which the broker hands over with the code;
+    without ``enroll`` the CLI checks its own nonce and nothing else.
     """
     broker = getattr(target, "broker_endpoint", None)
     if not broker:
@@ -198,11 +205,15 @@ def remote_login(
     if status != 200:
         raise RemoteLoginError(str(tokens.get("error") or "exchange_refused"), "The sign-in provider refused the code; start the sign-in again.")
     claims = _claims(tokens.get("id_token"))
-    if claims.get("nonce") != nonce:
+    expected_nonce = answer.get("nonce") if enroll is not None and isinstance(answer.get("nonce"), str) else nonce
+    if claims.get("nonce") != expected_nonce:
         raise RemoteLoginError("nonce_mismatch", "The sign-in answered tokens for a different request; nothing was saved.")
     email = claims.get("email") if isinstance(claims.get("email"), str) else None
     if expected_email is not None and (email or "").casefold() != expected_email.casefold():
         raise RemoteLoginError("unexpected_identity", "Someone other than the expected person approved this sign-in; nothing was saved.")
+    if enroll is not None:
+        enrollment = answer.get("enrollment") if isinstance(answer.get("enrollment"), str) else None
+        enroll(tokens, transaction, enrollment)
     record = store_token_set(tokens)
     out(f"Signed in as {email or claims.get('sub', 'an unknown identity')}.")
     return record

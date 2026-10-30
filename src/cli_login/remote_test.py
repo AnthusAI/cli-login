@@ -32,7 +32,8 @@ def jwt(claims):
 class World:
     """A real broker in-process, an approver who acts on the Nth poll, and a fake token endpoint."""
 
-    def __init__(self, *, approve_on_poll=2, deny=False):
+    def __init__(self, *, approve_on_poll=2, deny=False, product_nonce=None):
+        self.product_nonce = product_nonce
         self.now = 1000.0
         self.broker = Broker(
             MemoryTransactions(),
@@ -51,12 +52,13 @@ class World:
 
     def approver(self):
         described = self.broker.describe({"transaction": self.transaction})
-        self.issued_nonce = described["nonce"]
+        self.issued_nonce = self.product_nonce or described["nonce"]
         self.challenge = described["code_challenge"]
         if self.deny:
             self.broker.deny({"transaction": self.transaction})
             return
-        self.broker.bind({"transaction": self.transaction, "nonce_hash": sha256_hex("browser")})
+        extra = {"nonce": self.product_nonce, "enrollment": "sealed-proof"} if self.product_nonce else {}
+        self.broker.bind({"transaction": self.transaction, "nonce_hash": sha256_hex("browser"), **extra})
         self.broker.complete({"transaction": self.transaction, "nonce": "browser", "code": "auth-code"})
 
     def http(self, method, url, *, json_body=None, form=None, timeout=30):
@@ -314,3 +316,41 @@ def test_a_loopback_target_still_checks_the_brokers_callback_and_approval_origin
     with pytest.raises(RemoteLoginError) as raised:
         world.login(target=target)
     assert raised.value.code == "invalid_broker_answer" and world.polls == 0
+
+
+def enrolling(world, calls, *, fail=False):
+    def enroll(tokens, transaction, enrollment):
+        calls.append((tokens["refresh_token"], transaction, enrollment))
+        if fail:
+            raise RemoteLoginError("enrollment_refused", "The product refused to enroll this sign-in.")
+    return enroll
+
+
+def test_an_enrolling_sign_in_accepts_the_product_nonce_and_enrolls_before_storing():
+    world, stored, calls = World(product_nonce="challenge-nonce-0001"), [], []
+    remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock, sleep=world.sleep,
+                 host="cloud-box", enroll=enrolling(world, calls))
+    assert calls == [("refresh", world.transaction, "sealed-proof")] and len(stored) == 1
+
+
+def test_without_enroll_a_product_nonce_is_never_accepted():
+    world, stored = World(product_nonce="challenge-nonce-0001"), []
+    with pytest.raises(RemoteLoginError) as raised:
+        remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock,
+                     sleep=world.sleep, host="cloud-box")
+    assert raised.value.code == "nonce_mismatch" and stored == []
+
+
+def test_an_enrolling_sign_in_without_a_product_nonce_keeps_its_own_nonce_check():
+    world, stored, calls = World(), [], []
+    remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock, sleep=world.sleep,
+                 host="cloud-box", enroll=enrolling(world, calls))
+    assert calls[0][2] is None and len(stored) == 1
+
+
+def test_a_refused_enrollment_stores_nothing():
+    world, stored, calls = World(product_nonce="challenge-nonce-0001"), [], []
+    with pytest.raises(RemoteLoginError) as raised:
+        remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock,
+                     sleep=world.sleep, host="cloud-box", enroll=enrolling(world, calls, fail=True))
+    assert raised.value.code == "enrollment_refused" and stored == []
