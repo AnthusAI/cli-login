@@ -22,14 +22,44 @@ def test_the_target_has_exactly_the_agreed_fields():
         "namespace",
         "callback_uri",
         "broker_endpoint",
+        "remote_callback_uri",
     ]
     assert make_target().broker_endpoint is None
+    assert make_target().remote_callback_uri is None
 
 
-@pytest.mark.parametrize("field", ["issuer", "oauth_domain", "token_endpoint", "api_endpoint", "broker_endpoint"])
+@pytest.mark.parametrize("field", ["issuer", "oauth_domain", "token_endpoint", "api_endpoint"])
 def test_plain_http_endpoints_are_refused(field):
     with pytest.raises(AuthError):
         make_target(**{field: "http://insecure.example.test"})
+
+
+BROKER = {
+    "broker_endpoint": "https://broker.example.test/",
+    "remote_callback_uri": "https://app.example.test/cli/callback",
+}
+
+
+def test_a_broker_target_carries_its_own_https_remote_callback():
+    target = make_target(**BROKER)
+    assert target.remote_callback_uri == "https://app.example.test/cli/callback"
+    assert target.has_loopback_callback, "local sign-in keeps its loopback callback beside the remote one"
+
+
+@pytest.mark.parametrize("field", ["broker_endpoint", "remote_callback_uri"])
+def test_plain_http_broker_settings_are_refused(field):
+    with pytest.raises(AuthError):
+        make_target(**{**BROKER, field: "http://insecure.example.test/cli/callback"})
+
+
+def test_a_broker_without_a_remote_callback_is_refused():
+    with pytest.raises(AuthError, match="remote callback"):
+        make_target(broker_endpoint="https://broker.example.test/")
+
+
+def test_a_remote_callback_without_a_broker_is_refused():
+    with pytest.raises(AuthError, match="broker"):
+        make_target(remote_callback_uri="https://app.example.test/cli/callback")
 
 
 def test_endpoints_with_credentials_query_or_fragment_are_refused():
