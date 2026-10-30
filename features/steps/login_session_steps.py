@@ -3,9 +3,9 @@ import tempfile
 
 from behave import given, then, when
 
-from anthus_cli_login.errors import AuthError, OAuthError
-from anthus_cli_login.session import Session
-from anthus_cli_login.testing import FakeClock, FakeProvider, FakeStore, make_id_token, make_target
+from cli_login.errors import AuthError, OAuthError
+from cli_login.session import Session
+from cli_login.testing import FakeClock, FakeProvider, FakeStore, make_id_token, make_target
 
 
 def new_session(context, receive=None):

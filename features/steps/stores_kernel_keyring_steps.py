@@ -2,9 +2,9 @@ import errno
 
 from behave import given, then, when
 
-from anthus_cli_login.errors import StoreUnavailable
-from anthus_cli_login.stores.kernel_keyring import KernelKeyringStore
-from anthus_cli_login.testing import FakeKeyctl
+from cli_login.errors import StoreUnavailable
+from cli_login.stores.kernel_keyring import KernelKeyringStore
+from cli_login.testing import FakeKeyctl
 
 
 def use(context, fake):

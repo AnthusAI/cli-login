@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from behave import given, then, when
 
-from anthus_cli_login.errors import AuthError, OAuthError
-from anthus_cli_login.oauth import HTTPProvider
+from cli_login.errors import AuthError, OAuthError
+from cli_login.oauth import HTTPProvider
 
 
 class Opener:

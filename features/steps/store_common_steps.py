@@ -2,7 +2,7 @@
 
 from behave import then, when
 
-from anthus_cli_login.errors import AuthError, StoreUnavailable
+from cli_login.errors import AuthError, StoreUnavailable
 
 
 @when('the session "{value}" is saved under the key "{key}"')

@@ -88,7 +88,7 @@ def test_a_real_secret_outlives_the_process_that_wrote_it():
     except StoreUnavailable as error:
         skip_or_fail("kernel-keyring", str(error))
     code = (
-        "from anthus_cli_login.stores.kernel_keyring import KernelKeyringStore as S;"
+        "from cli_login.stores.kernel_keyring import KernelKeyringStore as S;"
         "S('anthus-spec-cross').set('key-1', 'written-elsewhere')"
     )
     subprocess.run([sys.executable, "-c", code], check=True)

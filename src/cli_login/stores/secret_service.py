@@ -1,6 +1,6 @@
 """Linux Secret Service (D-Bus), through the optional ``secretstorage`` package.
 
-Install it with ``pip install "anthus-cli-login[linux]"``. Items are labelled and attributed by namespace and
+Install it with ``pip install "cli-login[linux]"``. Items are labelled and attributed by namespace and
 key. The module never asks for an unlock prompt: a locked or absent keyring is reported as unavailable so that
 selection moves on, and the message says how to recover.
 """
@@ -11,9 +11,9 @@ import contextlib
 
 from ..errors import AuthError, StoreUnavailable
 
-APPLICATION = "anthus-cli-login"
+APPLICATION = "cli-login"
 
-INSTALL = 'Install the Linux extra: pip install "anthus-cli-login[linux]".'
+INSTALL = 'Install the Linux extra: pip install "cli-login[linux]".'
 NO_BUS = (
     "No Secret Service is reachable (no D-Bus session or no keyring daemon such as gnome-keyring or "
     "KeePassXC); on a cloud machine use the memory agent."

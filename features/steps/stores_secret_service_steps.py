@@ -2,8 +2,8 @@ import sys
 
 from behave import given, then, when
 
-from anthus_cli_login.stores.secret_service import SecretServiceStore
-from anthus_cli_login.testing import FakeSecretStorage
+from cli_login.stores.secret_service import SecretServiceStore
+from cli_login.testing import FakeSecretStorage
 
 
 def use(context, fake):
@@ -42,7 +42,7 @@ def opened(context, namespace):
 
 @when("a Secret Service store is probed")
 def probed(context):
-    from anthus_cli_login.errors import StoreUnavailable
+    from cli_login.errors import StoreUnavailable
 
     context.error = None
     try:

@@ -4,7 +4,7 @@ For cloud machines that have no desktop keyring and no usable kernel keyring. On
 namespace. It never writes a secret to disk, and after it stops (or the machine restarts) the person approves
 again. There is no plaintext fallback anywhere in this module.
 
-Run it as ``python -m anthus_cli_login.stores.agent serve|status|stop --namespace <namespace>``; a product
+Run it as ``python -m cli_login.stores.agent serve|status|stop --namespace <namespace>``; a product
 mounts the same functions under its own CLI name (``<product> auth agent``).
 
 Security model:
@@ -41,7 +41,7 @@ from pathlib import Path
 from ..errors import AuthError, StoreUnavailable
 from ..locks import default_state_dir
 
-ENV_SOCKET = "ANTHUS_CLI_LOGIN_AGENT_SOCKET"
+ENV_SOCKET = "CLI_LOGIN_AGENT_SOCKET"
 MAX_MESSAGE = 1 << 20  # one MiB per message: a session record is a few KiB
 _SAFE = re.compile(r"[A-Za-z0-9._-]{1,200}")
 _IO_TIMEOUT = 5.0
@@ -61,7 +61,7 @@ def _require_unix() -> None:
 
 def agent_command(namespace: str, *, state_dir: Path | str | None = None, socket_path: Path | str | None = None) -> str:
     """The command that starts this namespace's agent, for guidance in error messages."""
-    command = f"{os.path.basename(sys.executable) or 'python'} -m anthus_cli_login.stores.agent serve --namespace {namespace}"
+    command = f"{os.path.basename(sys.executable) or 'python'} -m cli_login.stores.agent serve --namespace {namespace}"
     if state_dir is not None:
         command += f" --state-dir {state_dir}"
     if socket_path is not None:
@@ -387,7 +387,7 @@ def start_background(namespace: str, *, state_dir=None, socket_path=None, timeou
     path = Path(socket_path) if socket_path is not None else socket_path_for(namespace, state_dir)
     if _alive(path, namespace):
         return
-    command = [sys.executable, "-m", "anthus_cli_login.stores.agent", "serve", "--namespace", namespace]
+    command = [sys.executable, "-m", "cli_login.stores.agent", "serve", "--namespace", namespace]
     command += ["--socket", os.fspath(path)]
     subprocess.Popen(
         command,
@@ -431,7 +431,7 @@ def stop(namespace: str, *, state_dir=None, socket_path=None, timeout: float = 5
 
 def main(argv=None) -> int:
     """``serve`` / ``status`` / ``stop``; a product mounts this under ``<product> auth agent``."""
-    parser = argparse.ArgumentParser(prog="python -m anthus_cli_login.stores.agent")
+    parser = argparse.ArgumentParser(prog="python -m cli_login.stores.agent")
     parser.add_argument("action", choices=["serve", "status", "stop"])
     parser.add_argument("--namespace", required=True, help="the product namespace this agent serves")
     parser.add_argument("--state-dir", help="the product's state directory (default: under ~/.config)")

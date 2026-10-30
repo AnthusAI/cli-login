@@ -20,7 +20,7 @@ _SAFE = re.compile(r"[A-Za-z0-9._-]{1,200}")
 
 
 def default_state_dir(namespace: str) -> Path:
-    return Path.home() / ".config" / "anthus-cli-login" / namespace
+    return Path.home() / ".config" / "cli-login" / namespace
 
 
 def ensure_state_dir(path: Path) -> Path:

@@ -12,7 +12,7 @@ def test_items_are_labelled_and_attributed_by_namespace_and_key():
     SecretServiceStore("ns", module=fake).set("k", "v")
     item = fake.collection.items[0]
     assert fake.labels == ["ns/k"]
-    assert item.attributes == {"application": "anthus-cli-login", "namespace": "ns", "key": "k"}
+    assert item.attributes == {"application": "cli-login", "namespace": "ns", "key": "k"}
 
 
 def test_round_trip_replace_delete_and_isolation():
@@ -36,7 +36,7 @@ def test_locked_and_absent_are_unavailable():
 
 def test_a_missing_package_names_the_extra(monkeypatch):
     monkeypatch.setitem(sys.modules, "secretstorage", None)
-    with pytest.raises(StoreUnavailable, match=r"anthus-cli-login\[linux\]"):
+    with pytest.raises(StoreUnavailable, match=r"cli-login\[linux\]"):
         SecretServiceStore("ns")
 
 

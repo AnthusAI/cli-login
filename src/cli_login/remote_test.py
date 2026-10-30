@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import pytest
 
-from anthus_cli_login.broker.handler import Broker, BrokerConfig, sha256_hex
-from anthus_cli_login.broker.transactions import MemoryTransactions
-from anthus_cli_login.remote import RemoteLoginError, remote_login
+from cli_login.broker.handler import Broker, BrokerConfig, sha256_hex
+from cli_login.broker.transactions import MemoryTransactions
+from cli_login.remote import RemoteLoginError, remote_login
 
 API = "https://api.example.test/graphql"
 BROKER = "https://broker.example.test"
@@ -198,8 +198,8 @@ def test_a_rate_limited_start_says_to_wait():
 
 
 def test_a_remote_sign_in_is_saved_by_the_session_under_the_targets_key(tmp_path):
-    from anthus_cli_login.session import Session
-    from anthus_cli_login.testing import FakeClock, FakeStore, make_id_token, make_target
+    from cli_login.session import Session
+    from cli_login.testing import FakeClock, FakeStore, make_id_token, make_target
 
     world = World()
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
@@ -223,7 +223,7 @@ def test_a_remote_sign_in_is_saved_by_the_session_under_the_targets_key(tmp_path
 
 
 def test_a_broker_callback_that_differs_from_the_targets_is_refused():
-    from anthus_cli_login.testing import make_target
+    from cli_login.testing import make_target
 
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
                          callback_uri="https://other.example.test/cli/callback", remote_callback_uri="https://other.example.test/cli/callback")
@@ -261,7 +261,7 @@ def test_the_expected_person_signs_in_and_the_cli_says_who_it_is():
 
 
 def test_broker_timing_is_clamped():
-    from anthus_cli_login.remote import MAX_INTERVAL, _clamp
+    from cli_login.remote import MAX_INTERVAL, _clamp
 
     assert _clamp("not a number", 5, 1, MAX_INTERVAL) == 5
     assert _clamp(10_000, 5, 1, MAX_INTERVAL) == MAX_INTERVAL
@@ -288,7 +288,7 @@ def test_a_broker_that_promises_a_long_wait_is_held_to_the_maximum():
 
 
 def test_an_approval_page_on_another_site_is_refused():
-    from anthus_cli_login.testing import make_target
+    from cli_login.testing import make_target
 
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
                          callback_uri="https://elsewhere.example.test/cli/callback", remote_callback_uri="https://elsewhere.example.test/cli/callback")
@@ -305,7 +305,7 @@ def test_a_target_without_a_remote_callback_cannot_sign_in_remotely():
 
 
 def test_a_loopback_target_still_checks_the_brokers_callback_and_approval_origin():
-    from anthus_cli_login.testing import make_target
+    from cli_login.testing import make_target
 
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
                          callback_uri="http://127.0.0.1:5182/oauth/callback",

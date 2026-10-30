@@ -2,7 +2,7 @@
 
 This is the contract between a CLI, a product's broker and the product's approval pages. A client in any
 language implements the CLI side from this page and runs `features/remote_sign_in.feature` against it. The
-Python client is `anthus_cli_login.remote`; the broker is `anthus_cli_login.broker`.
+Python client is `cli_login.remote`; the broker is `cli_login.broker`.
 
 Every broker answer carries `"protocol": 1`. A change to anything below bumps the version.
 

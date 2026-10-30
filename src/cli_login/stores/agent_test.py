@@ -184,7 +184,7 @@ def test_keys_must_be_safe(running):
 
 @unix
 def test_the_command_line_serves_in_the_background_reports_and_stops(state):
-    base = [sys.executable, "-m", "anthus_cli_login.stores.agent"]
+    base = [sys.executable, "-m", "cli_login.stores.agent"]
     common = ["--namespace", "ns", "--state-dir", state]
 
     def run(action, *extra):

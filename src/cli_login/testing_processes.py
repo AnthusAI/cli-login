@@ -1,6 +1,6 @@
 """Real child processes for specs: lock contention, and concurrent renewal and logout.
 
-``python -m anthus_cli_login.testing_processes <command> ...`` runs one child. ``FileStore`` is a test double
+``python -m cli_login.testing_processes <command> ...`` runs one child. ``FileStore`` is a test double
 shared by those children; it writes JSON to a file and is never offered by ``open_store``.
 """
 
@@ -72,7 +72,7 @@ def run_agent_thread(namespace: str, state_dir):
 
 
 def spawn(*args) -> subprocess.Popen:
-    return subprocess.Popen([sys.executable, "-m", "anthus_cli_login.testing_processes", *map(str, args)])
+    return subprocess.Popen([sys.executable, "-m", "cli_login.testing_processes", *map(str, args)])
 
 
 def wait_for(path, timeout=30.0) -> None:
