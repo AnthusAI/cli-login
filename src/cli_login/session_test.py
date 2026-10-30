@@ -223,3 +223,63 @@ def test_a_corrupt_stored_record_is_an_error_with_guidance(world):
     store.data[target.key] = "not json"
     with pytest.raises(AuthError, match="tool login"):
         new().headers(target.api_endpoint)
+
+
+def test_by_default_headers_hand_out_the_bare_id_token_exactly_as_in_0_1_0(world):
+    target, _clock, _store, _provider, _seen, new = world
+    session = new()
+    session.login()
+    headers = session.headers(target.api_endpoint)
+    assert headers == {"content-type": "application/json", "Authorization": session._token}
+    assert json.loads(__import__("base64").urlsafe_b64decode(headers["Authorization"].split(".")[1] + "==="))["token_use"] == "id"
+
+
+def test_an_access_token_api_gets_the_access_token_with_its_scheme(world):
+    target, _clock, _store, _provider, _seen, new = world
+    session = new(api_token="access", authorization_scheme="Bearer")
+    session.login()
+    scheme, _, token = session.headers(target.api_endpoint)["Authorization"].partition(" ")
+    claims = json.loads(__import__("base64").urlsafe_b64decode(token.split(".")[1] + "==="))
+    assert scheme == "Bearer" and claims["token_use"] == "access" and claims["client_id"] == target.client_id
+
+
+def test_the_access_token_is_never_stored(world):
+    target, _clock, store, _provider, _seen, new = world
+    session = new(api_token="access", authorization_scheme="Bearer")
+    session.login()
+    record = json.loads(store.data[target.key])
+    assert set(record) == {"subject", "label", "refresh_token", "created_at"}
+    assert session._token not in store.data[target.key]
+
+
+@pytest.mark.parametrize("change", [{"client_id": "other"}, {"token_use": "id"}, {"issuer": "https://elsewhere.example.test/p"},
+                                    {"subject": "someone-else"}])
+def test_a_mismatched_access_token_is_refused_and_nothing_is_saved(world, change):
+    from .testing import make_access_token
+
+    _target, clock, store, _provider, _seen, new = world
+    session = new(api_token="access")
+    response = {"id_token": make_id_token(clock()), "access_token": make_access_token(clock(), **change),
+                "refresh_token": "r", "expires_in": 3600}
+    with pytest.raises(AuthError):
+        session.store_token_set(response)
+    assert store.data == {}
+
+
+def test_a_short_lived_access_token_is_renewed_before_it_lapses(world):
+    from .testing import make_access_token
+
+    _target, clock, _store, _provider, _seen, new = world
+    session = new(api_token="access")
+    session.store_token_set({"id_token": make_id_token(clock()), "access_token": make_access_token(clock(), lifetime=300),
+                             "refresh_token": "r", "expires_in": 3600})
+    assert session._expires == clock() + 300
+
+
+def test_a_session_names_only_known_token_choices():
+    from .testing import make_target
+
+    with pytest.raises(ValueError):
+        Session(make_target(), store=FakeStore(), api_token="refresh")
+    with pytest.raises(ValueError):
+        Session(make_target(), store=FakeStore(), authorization_scheme="Basic")

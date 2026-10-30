@@ -151,3 +151,6 @@ Every page sends:
   every read.
 - The poll interval starts at 5 seconds, and each `slow_down` adds 5.
 - The rate limits per caller are 10 starts and 120 polls a minute.
+- All callers together share a ceiling of 100 starts a minute. Past it, every start answers `429` with
+  `retry_after` until the window ends. The broker logs `cli_login_start_ceiling`, and the template turns that log
+  line into an alarm.

@@ -43,6 +43,15 @@ def make_id_token(now, *, subject="person-1", issuer=ISSUER, audience=CLIENT_ID,
     return encode({"alg": "RS256"}) + "." + encode(claims) + ".fixture-signature"
 
 
+def make_access_token(now, *, subject="person-1", issuer=ISSUER, client_id=CLIENT_ID, token_use="access", lifetime=3600):
+    claims = {"iss": issuer, "client_id": client_id, "sub": subject, "token_use": token_use, "exp": now + lifetime}
+
+    def encode(value):
+        return base64.urlsafe_b64encode(json.dumps(value).encode()).decode().rstrip("=")
+
+    return encode({"alg": "RS256"}) + "." + encode(claims) + ".fixture-signature"
+
+
 class FakeClock:
     def __init__(self, now=1000.0):
         self.now = now
@@ -97,6 +106,7 @@ class FakeProvider:
             raise self.failure
         return {
             "id_token": make_id_token(self.clock(), subject=self.subject, issuer=self.issuer),
+            "access_token": make_access_token(self.clock(), subject=self.subject, issuer=self.issuer),
             "refresh_token": "refresh-secret-" + str(len(self.calls)),
             "expires_in": 3600,
         }
