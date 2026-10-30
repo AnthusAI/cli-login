@@ -133,3 +133,42 @@ def test_every_private_call_carries_the_marker():
                           privileges="Act as you.")
     pages.approve("GET", {"t": "x"}, {}, {})
     assert calls and all(call["cli_login"] == "private-v1" for call in calls)
+
+
+def test_a_prepare_hook_sets_the_sign_in_nonce_and_the_enrollment():
+    broker, _, transaction = world()
+    seen = []
+
+    def prepare(t, described):
+        seen.append((t, described["client_id"]))
+        return "challenge-nonce-0001", "sealed-proof"
+
+    pages = ApprovalPages(broker.handle, authorize_endpoint=AUTHORIZE, product="Example", privileges="Act as you.",
+                          prepare=prepare, token=counter())
+    page = pages.approve("GET", {"t": transaction}, {}, {})
+    csrf = cookie(page, CSRF_COOKIE)
+    approved = pages.approve("POST", {}, {"t": transaction, "csrf": csrf, "action": "approve", "confirm": "yes"}, {CSRF_COOKIE: csrf})
+    query = {key: value[0] for key, value in parse_qs(urlsplit(header(approved, "Location")).query).items()}
+    assert seen == [(transaction, "client-1")] and query["nonce"] == "challenge-nonce-0001"
+    item = broker.store.get(transaction)
+    assert item["oidc_nonce"] == "challenge-nonce-0001" and item["enrollment"] == "sealed-proof"
+
+
+def test_when_prepare_fails_nothing_is_bound_and_the_link_still_works():
+    broker, _, transaction = world()
+
+    def prepare(t, described):
+        raise RuntimeError("central identity service unavailable")
+
+    pages = ApprovalPages(broker.handle, authorize_endpoint=AUTHORIZE, product="Example", privileges="Act as you.",
+                          prepare=prepare, token=counter())
+    page = pages.approve("GET", {"t": transaction}, {}, {})
+    csrf = cookie(page, CSRF_COOKIE)
+    failed = pages.approve("POST", {}, {"t": transaction, "csrf": csrf, "action": "approve", "confirm": "yes"}, {CSRF_COOKIE: csrf})
+    assert failed.status == 503 and "central identity" not in failed.body
+    assert broker.describe({"transaction": transaction})["ok"] is True
+
+
+def counter():
+    tokens = iter(f"tok{n:02d}" for n in range(99))
+    return lambda _n: next(tokens)

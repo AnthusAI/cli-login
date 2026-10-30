@@ -95,7 +95,9 @@ The CLI checks:
 - that `redirect_uri` equals its target's `remote_callback_uri`, and that the `approval_url` from `/start` is
   on that URI's origin. A target with a broker must name its remote callback, even when its local sign-in uses a
   loopback callback;
-- that the ID token's `nonce` equals its own;
+- that the ID token's `nonce` equals its own. The one exception: a CLI that asked to enroll (`enroll=` in the
+  Python client) checks the nonce the poll handed over, if there is one. It then runs its enroll step, with its
+  tokens, the transaction and the `enrollment` string, before storing anything;
 - that the approver's email is the expected one, when one is given.
 
 It then passes the response to the session store, which checks issuer, audience, `token_use` and expiry.
@@ -117,7 +119,7 @@ A failure answers `{"ok": false, "error": "unavailable"}` and says nothing more.
 | `operation` | Fields | Effect |
 |---|---|---|
 | `describe` | `transaction` | For a pending, unexpired transaction: `client_id`, `target`, `requester`, `matching_code`, `code_challenge`, `nonce`, `redirect_uri`, `expires_at` |
-| `bind` | `transaction`, `nonce_hash` | Pending to bound, once. After this, nobody else can approve it. |
+| `bind` | `transaction`, `nonce_hash`, optional `nonce` and `enrollment` | Pending to bound, once. After this, nobody else can approve it. A product whose sign-in enrolls each login (the Cyclotron lab, at Prospectus) sets the OpenID `nonce` its approval page uses and an opaque `enrollment` string. The poll hands both to the CLI with the code. |
 | `complete` | `transaction`, `nonce`, `code` | Bound to approved, only when `sha256(nonce)` equals the bound hash |
 | `deny` | `transaction` | Pending or bound to denied |
 
