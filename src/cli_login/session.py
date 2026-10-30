@@ -29,7 +29,16 @@ class Session:
         state_dir=None,
         login_command: str = "login",
         identity_provider: str | None = None,
+        api_token: str = "id",
+        authorization_scheme: str | None = None,
     ):
+        """``api_token`` names the token ``headers()`` hands to the API: ``"id"`` (Papyrus's AppSync) or ``"access"``
+        (an API that checks Cognito access tokens, such as the Cyclotron lab). ``authorization_scheme`` prefixes it,
+        for example ``"Bearer"``. The access token is only ever held in memory, never stored."""
+        if api_token not in ("id", "access"):
+            raise ValueError('api_token is "id" or "access"')
+        if authorization_scheme not in (None, "Bearer"):
+            raise ValueError('authorization_scheme is None or "Bearer"')
         self.target = target
         self.store = store if store is not None else open_store(target)
         self.provider = provider if provider is not None else HTTPProvider()
@@ -38,6 +47,8 @@ class Session:
         self.state_dir = state_dir if state_dir is not None else default_state_dir(target.namespace)
         self.login_command = login_command
         self.identity_provider = identity_provider
+        self.api_token = api_token
+        self.authorization_scheme = authorization_scheme
         self._token = None
         self._expires = 0.0
         self._subject = None
@@ -102,6 +113,17 @@ class Session:
             ):
                 raise ValueError()
             expires = min(float(claims["exp"]), self.clock() + float(response["expires_in"]))
+            if self.api_token == "access":
+                value = response["access_token"]
+                access = json.loads(base64.urlsafe_b64decode(value.split(".")[1] + "==="))
+                if (
+                    access["iss"] != expected.issuer
+                    or access["client_id"] != expected.client_id
+                    or access["token_use"] != "access"
+                    or access["sub"] != claims["sub"]
+                ):
+                    raise ValueError()
+                expires = min(expires, float(access["exp"]))
             if (
                 not math.isfinite(expires)
                 or not math.isfinite(float(response["expires_in"]))
@@ -172,7 +194,8 @@ class Session:
                         self._token = None
                     raise OAuthError(error.code, transient=error.transient, login_command=self.login_command) from None
                 self.store_token_set(response, previous=record)
-            return {"content-type": "application/json", "Authorization": self._token}
+            token = self._token if self.authorization_scheme is None else f"{self.authorization_scheme} {self._token}"
+            return {"content-type": "application/json", "Authorization": token}
 
     def status(self) -> dict:
         try:
