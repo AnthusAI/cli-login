@@ -44,3 +44,29 @@ jobs:
             python -m pytest -q -rs
             python -m behave features
           '
+
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install build
+      - run: python -m build
+      - name: The wheel holds no specs and no plaintext test store
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          (wheel,) = glob.glob("dist/*.whl")
+          names = zipfile.ZipFile(wheel).namelist()
+          bad = [n for n in names if n.endswith("_test.py") or n.endswith("testing_processes.py")]
+          assert not bad, f"test files shipped in the wheel: {bad}"
+          assert any(n.endswith("anthus_cli_login/__init__.py") for n in names), names
+          print("wheel ok:", len(names), "files")
+          PY
+      - name: The installed wheel imports
+        run: |
+          python -m venv /tmp/wheel-venv
+          /tmp/wheel-venv/bin/pip install dist/*.whl
+          cd /tmp && /tmp/wheel-venv/bin/python -c "import anthus_cli_login; print(anthus_cli_login.__file__)"

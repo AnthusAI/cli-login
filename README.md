@@ -12,6 +12,15 @@ One CLI login for every Anthus product, without long-lived keys.
 - **A broker per deployment.** A small Lambda function and DynamoDB table that hands one authorization code to the
   one CLI that asked for it, and never holds a token.
 
+## Install
+
+```bash
+pip install anthus-cli-login
+pip install "anthus-cli-login[linux]"   # adds Secret Service support on Linux
+```
+
+Requires Python 3.10 or newer.
+
 ## Where sessions are stored
 
 Sessions live only in a secure store, tried in this order. There is no plaintext fallback: if nothing is
@@ -60,7 +69,16 @@ as with ssh-agent.
 - **Credential Manager errors on Windows**: sign in to Windows normally (not a restricted service account) and
   retry.
 
-Status: design. See [docs/design.md](docs/design.md). Nothing is released yet.
+Status: see [docs/design.md](docs/design.md).
+
+## Releasing (maintainers)
+
+Pushing to `main` (a pull request from `develop`) runs python-semantic-release on the conventional commits:
+`feat:` and `fix:` (or a breaking change) bump the version in `pyproject.toml`, tag `vX.Y.Z` and create a GitHub
+release; other commits release nothing. The `pypi` job then builds the sdist and wheel and publishes them with
+OIDC trusted publishing, so no PyPI token is stored anywhere. Publishing needs a PyPI trusted publisher, registered
+by the PyPI account owner: project `anthus-cli-login`, owner `AnthusAI`, repository `cli-login`, workflow
+`release.yml`, environment `pypi`. The workflow's `pypi` environment must also exist in the repository settings.
 
 The library targets Cognito user pools with the authorization-code flow and PKCE. Each product supplies its own
 issuer, client and endpoints; this repository holds none.
