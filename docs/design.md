@@ -79,14 +79,17 @@ Cognito has no RFC 8628 device flow, and a flow that has the person paste a code
 ruled out. So each product deployment runs one broker that hands one authorization code to the one CLI that
 asked for it.
 
-The broker is a deployable unit: a Python Lambda function behind a function URL, a DynamoDB table with TTL, and
-a CloudFormation template.
+The broker is a deployable unit: a Python Lambda function, a DynamoDB table with TTL, and a CloudFormation
+template.
 
-- **Routes.** It serves `POST /start` and `POST /poll`, and the pages `/cli/approve` and `/cli/callback`. The
-  product routes `/cli/*` on its own domain to it, through an Amplify reverse-proxy rewrite or a CloudFront
-  behavior, so the approval page and its CSRF cookie belong to the product's domain.
-- **Fallback.** If a product's routing cannot pass the broker's `Set-Cookie` header and the caller's address
-  through, the product serves the two pages itself, using the library's page handlers.
+- **Public routes.** The function URL serves only `POST /start` and `POST /poll`. The CLI calls it directly, so
+  the broker sees each caller's real address and can rate-limit each caller.
+- **Private operations.** `describe`, `bind`, `complete` and `deny` are not on the function URL. The product's
+  backend invokes the Lambda directly with IAM (`lambda:InvokeFunction`). So only the product's own approval
+  pages can attach a sign-in to a transaction: someone who knows T cannot bind their own sign-in to a waiting
+  CLI.
+- **The pages.** The product serves `/cli/approve` and `/cli/callback` on its own domain, using the library's
+  page handlers. The CSRF cookie therefore belongs to the product's domain, with no proxy in between.
 - **Safety.** The broker never holds a token. It rate-limits each caller on `/start` and `/poll`, and sends
   `slow_down` to a CLI that polls too fast.
 
@@ -112,16 +115,26 @@ another language implements the client from the protocol and runs the same featu
    - a poll interval;
    - an expiry about 10 minutes away;
    - the protocol version.
-2. **Approve.** The approval page shows the requester, the matching code, the target, and what the session
-   will be able to do. It asks the person to compare the code with the one the agent reported before approving.
+2. **Approve.** The product's `/cli/approve?t=T` page invokes the broker's `describe` and shows:
+   - the requester;
+   - the matching code;
+   - the target;
+   - what the session will be able to do.
 
-   Approve sends the browser to Cognito `/oauth2/authorize` with:
+   It asks the person to compare the code with the one the agent reported. On Approve (a POST with the page's
+   CSRF check), the product:
+   - makes a nonce N;
+   - sets it in a short-lived first-party cookie;
+   - invokes `bind` with T and `sha256(N)`. A transaction can be bound only once.
+
+   It then sends the browser to Cognito `/oauth2/authorize` with:
    - the transaction's `code_challenge`;
    - `redirect_uri=https://<product-domain>/cli/callback`;
-   - `state` = T plus a CSRF nonce bound to a short-lived cookie.
+   - `state` = T and N.
 
-   Deny and cancel are recorded on the transaction.
-3. **Callback.** `/cli/callback` checks the state against the cookie and stores the authorization code on T.
+   Deny invokes `deny`, which is recorded on the transaction.
+3. **Callback.** `/cli/callback` checks that the state's N matches the cookie, and invokes `complete` with T, N
+   and the authorization code. The broker checks `sha256(N)` against the bound value and stores the code on T.
 4. **Poll.** The CLI polls `POST /poll` with T and P. The broker compares `sha256(P)`. It answers pending,
    denied, expired or `slow_down`, and, once the code is there, returns it exactly once, through a conditional
    delete, so two polls at the same moment cannot both receive it.
@@ -159,6 +172,37 @@ broker's answers carry it.
 1. **Move an existing CLI login into the library** (the first adopter's), keeping its behaviour and stored key
    names.
 2. **Build the new parts once, here:** the Linux and Windows stores, the memory agent, the locks, remote
-   sign-in, and the broker. Prove the broker, including the `/cli/*` routing, on one test deployment.
+   sign-in, and the broker. Prove the broker and the two pages on one test deployment.
 3. **Products adopt the released library one at a time.** Each adoption needs its own live changes: a callback
-   URL on its Cognito client, its broker deployed, and the `/cli/*` route on its domain.
+   URL on its Cognito client, its broker deployed, the two pages on its domain, and its backend's grant to invoke the broker.
+
+## Package layout
+
+One Python distribution, `anthus-cli-login`, import name `anthus_cli_login`. Specs sit beside each module
+(`foo.py` has `foo_test.py`); Gherkin features live in `features/`.
+
+```
+src/anthus_cli_login/
+  target.py          the product's target and its validation
+  errors.py          error types; messages never carry token values
+  oauth.py           PKCE, local loopback sign-in, token exchange and checks
+  remote.py          the broker client: start, poll, slow_down, exchange
+  session.py         renewal, logout with revocation, status and whoami
+  locks.py           per-key cross-platform locks
+  commands.py        optional ready-made subcommands
+  stores/
+    __init__.py      choosing a store in order, failing closed
+    macos.py         Keychain
+    secret_service.py
+    kernel_keyring.py
+    windows.py       Credential Manager
+    agent.py         the memory agent: client and daemon
+  broker/
+    handler.py       the Lambda: /start and /poll on the function URL; describe, bind, complete, deny by invoke
+    transactions.py  the DynamoDB table: single use, conditional delete, TTL
+    throttle.py      per-caller rate limits and slow_down
+    pages.py         the approve and callback page handlers products mount
+infra/broker.yaml    the broker's CloudFormation template
+features/            Gherkin specs for the library, the broker and the protocol
+docs/protocol.md     the protocol for clients in other languages
+```

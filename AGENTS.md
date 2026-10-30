@@ -38,3 +38,14 @@ language-neutral protocol with conformance specs. Read [docs/design.md](docs/des
 Git Flow: branch from `develop`, open a pull request to `develop`, merge with a merge commit once CI is green.
 Promotion to `main` is a pull request from `develop`. Kanbus board changes are committed on `develop` with
 `kbs commit` and pushed, with no pull request. Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`).
+
+## Commands
+
+```bash
+python -m pip install -e ".[dev]"
+python -m ruff check .
+python -m pytest -q          # unit specs beside each module
+python -m behave features    # Gherkin specs
+```
+
+CI runs these on Linux, macOS and Windows, because the stores and locks differ by platform.
