@@ -22,6 +22,7 @@ class Target:
     api_endpoint: str = API
     broker_endpoint: str | None = BROKER
     token_endpoint: str = TOKEN
+    remote_callback_uri: str | None = "https://app.example.test/cli/callback"
 
 
 def jwt(claims):
@@ -296,4 +297,22 @@ def test_an_approval_page_on_another_site_is_refused():
     world, stored = World(), []
     with pytest.raises(RemoteLoginError) as raised:
         world.login(target=target, stored=stored)
+    assert raised.value.code == "invalid_broker_answer" and world.polls == 0
+
+
+def test_a_target_without_a_remote_callback_cannot_sign_in_remotely():
+    with pytest.raises(RemoteLoginError) as raised:
+        World().login(target=Target(remote_callback_uri=None))
+    assert raised.value.code == "remote_unavailable"
+
+
+def test_a_loopback_target_still_checks_the_brokers_callback_and_approval_origin():
+    from anthus_cli_login.testing import make_target
+
+    target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
+                         callback_uri="http://127.0.0.1:5182/oauth/callback",
+                         remote_callback_uri="https://elsewhere.example.test/cli/callback")
+    world = World()
+    with pytest.raises(RemoteLoginError) as raised:
+        world.login(target=target)
     assert raised.value.code == "invalid_broker_answer" and world.polls == 0

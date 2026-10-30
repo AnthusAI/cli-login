@@ -92,8 +92,9 @@ A network failure while polling is safe to retry.
 poll) and `code_verifier=V`.
 
 The CLI checks:
-- that `redirect_uri` equals its target's HTTPS callback, when it has one, and that the `approval_url` from
-  `/start` is on that callback's origin;
+- that `redirect_uri` equals its target's `remote_callback_uri`, and that the `approval_url` from `/start` is
+  on that URI's origin. A target with a broker must name its remote callback, even when its local sign-in uses a
+  loopback callback;
 - that the ID token's `nonce` equals its own;
 - that the approver's email is the expected one, when one is given.
 
