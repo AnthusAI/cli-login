@@ -17,11 +17,13 @@ Feature: Choosing a secure store
     When a store is opened for the target
     Then the chosen store is "kernel keyring"
 
+  @unix
   Scenario: A container uses the memory agent
     Given a Linux machine whose Secret Service is absent, whose kernel keyring is blocked, and whose memory agent runs
     When a store is opened for the target
     Then the chosen store is "memory agent"
 
+  @unix
   Scenario: Nothing usable fails with exact recovery steps
     Given a Linux machine where no store is usable
     When a store is opened for the target

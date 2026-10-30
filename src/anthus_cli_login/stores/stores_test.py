@@ -1,4 +1,5 @@
 import errno
+import sys
 
 import pytest
 
@@ -44,6 +45,10 @@ def test_each_platform_gets_its_default(machine):
     assert choose("linux").name == "Secret Service"
 
 
+unix = pytest.mark.skipif(sys.platform == "win32", reason="the memory agent needs Unix sockets")
+
+
+@unix
 def test_linux_moves_down_the_order(machine):
     machine["secret"].locked = True
     assert choose().name == "kernel keyring"
@@ -56,6 +61,7 @@ def test_linux_moves_down_the_order(machine):
         stop()
 
 
+@unix
 def test_nothing_usable_names_the_exact_recovery_steps(machine, tmp_path):
     machine["secret"].no_bus = True
     machine["keyring"].blocked = errno.ENOSYS
