@@ -77,7 +77,7 @@ Pushing to `main` (a pull request from `develop`) runs python-semantic-release o
 `feat:` and `fix:` (or a breaking change) bump the version in `pyproject.toml`, tag `vX.Y.Z` and create a GitHub
 release; other commits release nothing. The `pypi` job then builds the sdist and wheel and publishes them with
 OIDC trusted publishing, so no PyPI token is stored anywhere. Publishing needs a PyPI trusted publisher, registered
-by the PyPI account owner: project `cli-login`, owner `AnthusAI`, repository `cli-login`, workflow
+by the PyPI account owner: project `cli-login`, owner `DataParade-io`, repository `cli-login`, workflow
 `release.yml`, environment `pypi`. The workflow's `pypi` environment must also exist in the repository settings.
 
 The library targets Cognito user pools with the authorization-code flow and PKCE. Each product supplies its own
