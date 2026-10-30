@@ -54,6 +54,7 @@ class Target:
     namespace: str
     callback_uri: str
     broker_endpoint: str | None = None
+    remote_callback_uri: str | None = None
 
     def __post_init__(self):
         https_url(self.issuer, "issuer")
@@ -62,6 +63,13 @@ class Target:
         https_url(self.api_endpoint, "api_endpoint")
         if self.broker_endpoint is not None:
             https_url(self.broker_endpoint, "broker_endpoint")
+            # Remote sign-in redirects to the product's own callback page, never to the loopback callback.
+            if self.remote_callback_uri is None:
+                raise AuthError("A broker needs a remote callback URI: the HTTPS callback page the product serves.")
+        if self.remote_callback_uri is not None:
+            if self.broker_endpoint is None:
+                raise AuthError("A remote callback URI is only used with a broker; configure broker_endpoint as well.")
+            https_url(self.remote_callback_uri, "remote_callback_uri")
         object.__setattr__(self, "oauth_domain", self.oauth_domain.rstrip("/"))
         if not self.client_id or not isinstance(self.client_id, str):
             raise AuthError("A registered OAuth client id is required.")

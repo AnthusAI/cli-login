@@ -22,10 +22,17 @@
         "model": "Sonnet 5.5",
         "name": "Move Login"
       }
+    },
+    {
+      "id": "aa2eed08-e86f-4261-8514-227f766b9d32",
+      "author": "home",
+      "text": "Library half done in #1 (merged). Kept in progress: 'without breaking Mac sessions' is only proven once the Papyrus CLI uses the library and an existing Keychain session renews through it. That Papyrus PR (Target per site, namespace papyrus-newsroom-oauth, identity_provider Google, existing state dir) is next after the stores story.",
+      "created_at": "2026-10-30T11:58:11.249739Z",
+      "comment_type": "default"
     }
   ],
   "created_at": "2026-10-30T10:52:21.309520Z",
-  "updated_at": "2026-10-30T11:43:05.062953Z",
+  "updated_at": "2026-10-30T11:58:11.250332Z",
   "closed_at": null,
   "right_now_summary": null,
   "right_now_updated_at": null,

@@ -204,7 +204,7 @@ def test_a_remote_sign_in_is_saved_by_the_session_under_the_targets_key(tmp_path
 
     world = World()
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
-                         callback_uri="https://app.example.test/cli/callback")
+                         callback_uri="https://app.example.test/cli/callback", remote_callback_uri="https://app.example.test/cli/callback")
     clock, store = FakeClock(world.now), FakeStore()
     session = Session(target, store=store, clock=clock, state_dir=tmp_path)
     original = world.http
@@ -227,7 +227,7 @@ def test_a_broker_callback_that_differs_from_the_targets_is_refused():
     from anthus_cli_login.testing import make_target
 
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
-                         callback_uri="https://other.example.test/cli/callback")
+                         callback_uri="https://other.example.test/cli/callback", remote_callback_uri="https://other.example.test/cli/callback")
     with pytest.raises(RemoteLoginError) as raised:
         World().login(target=target)
     assert raised.value.code == "invalid_broker_answer"
@@ -292,7 +292,7 @@ def test_an_approval_page_on_another_site_is_refused():
     from anthus_cli_login.testing import make_target
 
     target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
-                         callback_uri="https://elsewhere.example.test/cli/callback")
+                         callback_uri="https://elsewhere.example.test/cli/callback", remote_callback_uri="https://elsewhere.example.test/cli/callback")
     world, stored = World(), []
     with pytest.raises(RemoteLoginError) as raised:
         world.login(target=target, stored=stored)
