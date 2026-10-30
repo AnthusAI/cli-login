@@ -138,6 +138,31 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Ref InvokerRoleArn
 
+  StartCeilingFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref BrokerLogs
+      FilterPattern: '{ $.event = "cli_login_start_ceiling" }'
+      MetricTransformations:
+        - MetricNamespace: cli-login
+          MetricName: StartCeilingReached
+          MetricValue: "1"
+          DefaultValue: 0
+
+  StartCeilingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: The cli-login broker refused starts at its ceiling across all callers (a flood from many addresses)
+      Namespace: cli-login
+      MetricName: StartCeilingReached
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+
   ThrottledAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

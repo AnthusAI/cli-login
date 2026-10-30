@@ -31,3 +31,10 @@ def test_the_function_url_takes_no_credentials_and_the_broker_is_bounded():
 def test_the_broker_may_only_read_and_write_its_own_table():
     assert "Resource: !GetAtt Transactions.Arn" in resource("BrokerRole")
     assert "AttributeName: expires_at" in resource("Transactions")
+
+
+def test_the_start_ceiling_is_logged_counted_and_alarmed():
+    assert "$.event = \"cli_login_start_ceiling\"" in resource("StartCeilingFilter")
+    assert "LogGroupName: !Ref BrokerLogs" in resource("StartCeilingFilter")
+    alarm = resource("StartCeilingAlarm")
+    assert "MetricName: StartCeilingReached" in alarm and "Namespace: cli-login" in alarm and "Dimensions" not in alarm
