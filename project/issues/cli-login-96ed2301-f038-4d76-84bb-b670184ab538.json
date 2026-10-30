@@ -3,7 +3,7 @@
   "title": "Move Papyrus's CLI login into the library without breaking Mac sessions",
   "description": "Owner: Papyrus session. Move src/papyrus_content/cli_user_auth.py and macos_keychain.py into anthus_cli_login (target, oauth, session, locks, stores/macos), behind a product target the caller supplies. Keep Keychain SERVICE 'papyrus-newsroom-oauth' and the per-site keys, so existing Mac sessions renew unchanged; keep Papyrus's behaviour and port its specs (features_backend/cli-user-auth.feature) as Gherkin here. Done when Papyrus's specs pass against the library with no behaviour change.",
   "type": "story",
-  "status": "in_progress",
+  "status": "closed",
   "priority": 1,
   "assignee": null,
   "creator": null,
@@ -29,11 +29,18 @@
       "text": "Library half done in #1 (merged). Kept in progress: 'without breaking Mac sessions' is only proven once the Papyrus CLI uses the library and an existing Keychain session renews through it. That Papyrus PR (Target per site, namespace papyrus-newsroom-oauth, identity_provider Google, existing state dir) is next after the stores story.",
       "created_at": "2026-10-30T11:58:11.249739Z",
       "comment_type": "default"
+    },
+    {
+      "id": "8e2eaf1f-f176-45b7-9f83-ebd9dbac93ee",
+      "author": "home",
+      "text": "Done. Papyrus adopted cli-login==0.1.0 in AnthusAI/Papyrus#885 (merged to develop). Mac sessions: a scenario seeds an earlier-format Keychain session under papyrus-newsroom-oauth with the unchanged per-site key, and it renews through the library. Live: papyrus doctor on the M1 renewed Ryan's existing shipped.anth.us Keychain session through the library.",
+      "created_at": "2026-10-30T14:01:17.888119Z",
+      "comment_type": "default"
     }
   ],
   "created_at": "2026-10-30T10:52:21.309520Z",
-  "updated_at": "2026-10-30T11:58:11.250332Z",
-  "closed_at": null,
+  "updated_at": "2026-10-30T14:01:17.900618Z",
+  "closed_at": "2026-10-30T14:01:17.900340Z",
   "right_now_summary": null,
   "right_now_updated_at": null,
   "custom": {}
