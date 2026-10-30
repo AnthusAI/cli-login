@@ -1,0 +1,20 @@
+{
+  "id": "cli-login-96ed2301-f038-4d76-84bb-b670184ab538",
+  "title": "Move Papyrus's CLI login into the library without breaking Mac sessions",
+  "description": "Owner: Papyrus session. Move src/papyrus_content/cli_user_auth.py and macos_keychain.py into anthus_cli_login (target, oauth, session, locks, stores/macos), behind a product target the caller supplies. Keep Keychain SERVICE 'papyrus-newsroom-oauth' and the per-site keys, so existing Mac sessions renew unchanged; keep Papyrus's behaviour and port its specs (features_backend/cli-user-auth.feature) as Gherkin here. Done when Papyrus's specs pass against the library with no behaviour change.",
+  "type": "story",
+  "status": "open",
+  "priority": 1,
+  "assignee": null,
+  "creator": null,
+  "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "labels": [],
+  "dependencies": [],
+  "comments": [],
+  "created_at": "2026-10-30T10:52:21.309520Z",
+  "updated_at": "2026-10-30T10:52:21.309541Z",
+  "closed_at": null,
+  "right_now_summary": null,
+  "right_now_updated_at": null,
+  "custom": {}
+}
