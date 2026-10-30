@@ -3,3 +3,4 @@ project/.overlay/
 __pycache__/
 *.egg-info/
 dist/
+*.zip
