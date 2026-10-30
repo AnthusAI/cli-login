@@ -1,0 +1,20 @@
+{
+  "id": "cli-login-cccc972a-7df2-4795-9f9b-d8805dfc142e",
+  "title": "Add a global ceiling or WAF in front of each broker's function URL",
+  "description": "From the security review of #2 (finding 2). #2 added per-caller limits (IPv6 by /64), reserved concurrency, and a throttle alarm. Still open: a global counter or an AWS WAF rate rule in front of the function URL, decided per product deployment before its first live broker deploy, and with Ryan's approval since it changes live infrastructure.",
+  "type": "task",
+  "status": "open",
+  "priority": 2,
+  "assignee": null,
+  "creator": null,
+  "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "labels": [],
+  "dependencies": [],
+  "comments": [],
+  "created_at": "2026-10-30T11:54:51.463971Z",
+  "updated_at": "2026-10-30T11:54:51.463992Z",
+  "closed_at": null,
+  "right_now_summary": null,
+  "right_now_updated_at": null,
+  "custom": {}
+}

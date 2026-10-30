@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "222fa29e-fada-4e25-a64d-e259c99cbb24",
+  "issue_id": "cli-login-9a02d68d-d3ff-4dfd-a319-2c411f05fddd",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T11:54:51.454Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Require a separate remote callback URI on Target whenever a broker is configured",
+    "description": "From the security review of #2 (finding 5). Owner: Papyrus session (target.py). Add Target.remote_callback_uri (HTTPS), required whenever broker_endpoint is set, so remote sign-in always checks the broker's redirect_uri and the approval_url's origin, including for targets whose callback_uri is a loopback URL. Then remote.py switches its two checks from callback_uri to remote_callback_uri (Cyclotron session).",
+    "issue_type": "task",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}
