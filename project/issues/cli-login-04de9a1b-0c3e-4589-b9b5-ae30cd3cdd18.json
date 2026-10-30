@@ -10,9 +10,17 @@
   "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
   "labels": [],
   "dependencies": [],
-  "comments": [],
+  "comments": [
+    {
+      "id": "fee91f45-11f0-48ec-84d9-c91988e3cd1f",
+      "author": "home",
+      "text": "PyPI release PR (semantic-release on main, OIDC trusted publishing, wheel checks in CI): https://github.com/AnthusAI/cli-login/pull/6",
+      "created_at": "2026-10-30T12:28:43.771635Z",
+      "comment_type": "default"
+    }
+  ],
   "created_at": "2026-10-30T10:52:21.363488Z",
-  "updated_at": "2026-10-30T10:52:21.363506Z",
+  "updated_at": "2026-10-30T12:28:43.772215Z",
   "closed_at": null,
   "right_now_summary": null,
   "right_now_updated_at": null,
