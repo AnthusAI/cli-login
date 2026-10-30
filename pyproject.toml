@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cli-login"
 version = "0.0.0"
-description = "One CLI login for every Anthus product: PKCE sign-in, remote approval, secure storage and renewal."
+description = "Browser sign-in for CLIs without long-lived keys: PKCE, remote approval, secure storage and renewal."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
