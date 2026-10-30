@@ -7,11 +7,11 @@ from urllib.parse import parse_qs, urlsplit
 
 from behave import given, then, when
 
-from anthus_cli_login.broker import throttle
-from anthus_cli_login.broker.handler import Broker, BrokerConfig, sha256_hex
-from anthus_cli_login.broker.pages import CSRF_COOKIE, NONCE_COOKIE, ApprovalPages
-from anthus_cli_login.broker.transactions import MemoryTransactions
-from anthus_cli_login.remote import RemoteLoginError, remote_login
+from cli_login.broker import throttle
+from cli_login.broker.handler import Broker, BrokerConfig, sha256_hex
+from cli_login.broker.pages import CSRF_COOKIE, NONCE_COOKIE, ApprovalPages
+from cli_login.broker.transactions import MemoryTransactions
+from cli_login.remote import RemoteLoginError, remote_login
 
 API = "https://api.example.test/graphql"
 BROKER = "https://broker.example.test"

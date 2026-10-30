@@ -69,14 +69,14 @@ def test_nothing_usable_names_the_exact_recovery_steps(machine, tmp_path):
         choose(state_dir=tmp_path / "s")
     message = str(caught.value)
     assert "agent serve --namespace example-product" in message
-    assert "anthus-cli-login[linux]" in message
+    assert "cli-login[linux]" in message
     assert "secret-service:" in message and "kernel-keyring:" in message and "agent:" in message
     assert "plaintext storage is never used" in message.lower()
 
 
 def test_the_environment_variable_chooses_a_store(machine):
-    assert choose(environ={"ANTHUS_CLI_LOGIN_STORE": "kernel-keyring"}).name == "kernel keyring"
-    assert choose(backend="kernel-keyring", environ={"ANTHUS_CLI_LOGIN_STORE": "secret-service"}).name == "kernel keyring"
+    assert choose(environ={"CLI_LOGIN_STORE": "kernel-keyring"}).name == "kernel keyring"
+    assert choose(backend="kernel-keyring", environ={"CLI_LOGIN_STORE": "secret-service"}).name == "kernel keyring"
 
 
 @pytest.mark.parametrize("name", ["file", "plaintext", "keyring", "json", "../x"])
@@ -105,6 +105,6 @@ def test_importing_the_package_loads_no_store_backend():
     import subprocess
     import sys
 
-    code = "import sys, anthus_cli_login, anthus_cli_login.stores; print(sorted(m for m in sys.modules if m.startswith('anthus_cli_login.stores.') or m == 'secretstorage'))"
+    code = "import sys, cli_login, cli_login.stores; print(sorted(m for m in sys.modules if m.startswith('cli_login.stores.') or m == 'secretstorage'))"
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert out.strip() == "[]"

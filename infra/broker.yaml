@@ -94,7 +94,7 @@ Resources:
       ReservedConcurrentExecutions: !Ref ReservedConcurrency
       LoggingConfig:
         LogGroup: !Ref BrokerLogs
-      Handler: anthus_cli_login.broker.handler.lambda_handler
+      Handler: cli_login.broker.handler.lambda_handler
       Role: !GetAtt BrokerRole.Arn
       Timeout: 10
       MemorySize: 256

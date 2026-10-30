@@ -5,7 +5,7 @@ Order of choice:
 - Linux: Secret Service, then the kernel keyring, then a running memory agent.
 - Windows: Credential Manager.
 
-Set ``ANTHUS_CLI_LOGIN_STORE`` (or pass ``backend=``) to one of ``keychain``, ``secret-service``,
+Set ``CLI_LOGIN_STORE`` (or pass ``backend=``) to one of ``keychain``, ``secret-service``,
 ``kernel-keyring``, ``agent`` or ``credential-manager`` to choose explicitly. Any other value, a file or
 plaintext included, is refused. Backends load lazily so importing the package needs no optional dependency.
 """
@@ -18,7 +18,7 @@ import sys
 from ..errors import AuthError, StoreUnavailable
 from ..target import Target
 
-ENV_STORE = "ANTHUS_CLI_LOGIN_STORE"
+ENV_STORE = "CLI_LOGIN_STORE"
 
 
 def _keychain(target, state_dir, environ):
@@ -85,7 +85,7 @@ def _guidance(target: Target, reasons: list[tuple[str, str]], state_dir) -> Auth
     lines.append(
         f"On a cloud machine, start the memory agent: {agent_command(target.namespace, state_dir=state_dir)} "
         "then sign in again. Elsewhere, install the Linux extra "
-        '(pip install "anthus-cli-login[linux]") and unlock your desktop keyring. '
+        '(pip install "cli-login[linux]") and unlock your desktop keyring. '
         "Plaintext storage is never used."
     )
     return AuthError("\n".join(lines))

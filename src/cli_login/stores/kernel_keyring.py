@@ -134,7 +134,7 @@ class KernelKeyringStore:
         self._ring = None
 
     def _description(self, key: str) -> str:
-        return f"anthus-cli-login:{self.namespace}:{key}"
+        return f"cli-login:{self.namespace}:{key}"
 
     def _keyring(self) -> int:
         if self._ring is None:
@@ -146,7 +146,7 @@ class KernelKeyringStore:
 
     def probe(self) -> None:
         """Write, read back and remove a throwaway key; unavailable if the kernel refuses any step."""
-        description = f"anthus-cli-login:probe:{os.getpid()}"
+        description = f"cli-login:probe:{os.getpid()}"
         try:
             ring = self._keyring()
             key = self.backend.add_key(ring, description, b"probe")

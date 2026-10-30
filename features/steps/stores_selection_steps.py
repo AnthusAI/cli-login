@@ -3,15 +3,15 @@ from unittest import mock
 
 from behave import given, then, when
 
-from anthus_cli_login import stores
-from anthus_cli_login.errors import AuthError
-from anthus_cli_login.stores.agent import AgentStore
-from anthus_cli_login.stores.kernel_keyring import KernelKeyringStore
-from anthus_cli_login.stores.macos import MacOSKeychain, MacOSKeychainStore
-from anthus_cli_login.stores.secret_service import SecretServiceStore
-from anthus_cli_login.stores.windows import WindowsCredentialStore
-from anthus_cli_login.testing import FakeCredentialManager, FakeKeyctl, FakeSecretStorage, make_target
-from anthus_cli_login.testing_processes import run_agent_thread, short_state_dir
+from cli_login import stores
+from cli_login.errors import AuthError
+from cli_login.stores.agent import AgentStore
+from cli_login.stores.kernel_keyring import KernelKeyringStore
+from cli_login.stores.macos import MacOSKeychain, MacOSKeychainStore
+from cli_login.stores.secret_service import SecretServiceStore
+from cli_login.stores.windows import WindowsCredentialStore
+from cli_login.testing import FakeCredentialManager, FakeKeyctl, FakeSecretStorage, make_target
+from cli_login.testing_processes import run_agent_thread, short_state_dir
 
 
 class Keychain(MacOSKeychain):

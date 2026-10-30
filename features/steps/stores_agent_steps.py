@@ -10,10 +10,10 @@ from unittest import mock
 
 from behave import given, then, when
 
-from anthus_cli_login.errors import AuthError, StoreUnavailable
-from anthus_cli_login.stores import agent
-from anthus_cli_login.stores.agent import AgentStore
-from anthus_cli_login.testing_processes import run_agent_thread, short_state_dir
+from cli_login.errors import AuthError, StoreUnavailable
+from cli_login.stores import agent
+from cli_login.stores.agent import AgentStore
+from cli_login.testing_processes import run_agent_thread, short_state_dir
 
 NS = "example-product"
 
@@ -56,7 +56,7 @@ def stale(context):
 
 
 def cli(context, *args):
-    return [sys.executable, "-m", "anthus_cli_login.stores.agent", args[0], "--namespace", NS,
+    return [sys.executable, "-m", "cli_login.stores.agent", args[0], "--namespace", NS,
             "--state-dir", context.state_dir, *args[1:]]
 
 

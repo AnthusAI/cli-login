@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "src" / "anthus_cli_login"
+PACKAGE = ROOT / "src" / "cli_login"
 
 
 def build(out: Path) -> str:

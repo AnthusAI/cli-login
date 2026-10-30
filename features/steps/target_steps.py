@@ -1,7 +1,7 @@
 from behave import given, then
 
-from anthus_cli_login.errors import AuthError
-from anthus_cli_login.testing import make_target
+from cli_login.errors import AuthError
+from cli_login.testing import make_target
 
 BROKER = "https://broker.example.test/"
 REMOTE = "https://app.example.test/cli/callback"

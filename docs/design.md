@@ -180,11 +180,11 @@ broker's answers carry it.
 
 ## Package layout
 
-One Python distribution, `anthus-cli-login`, import name `anthus_cli_login`. Specs sit beside each module
+One Python distribution, `cli-login`, import name `cli_login`. Specs sit beside each module
 (`foo.py` has `foo_test.py`); Gherkin features live in `features/`.
 
 ```
-src/anthus_cli_login/
+src/cli_login/
   target.py          the product's target and its validation
   errors.py          error types; messages never carry token values
   oauth.py           PKCE, local loopback sign-in, token exchange and checks

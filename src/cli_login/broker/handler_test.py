@@ -1,9 +1,9 @@
 import base64
 import json
 
-from anthus_cli_login.broker import throttle
-from anthus_cli_login.broker.handler import Broker, BrokerConfig, matching_code, sha256_hex
-from anthus_cli_login.broker.transactions import MemoryTransactions
+from cli_login.broker import throttle
+from cli_login.broker.handler import Broker, BrokerConfig, matching_code, sha256_hex
+from cli_login.broker.transactions import MemoryTransactions
 
 CHALLENGE = "a" * 43
 SECRET = "poll-secret-value"
@@ -222,7 +222,7 @@ def test_a_private_operation_needs_its_marker_and_no_request_context():
 
 
 def test_ipv6_callers_share_a_bucket_per_64_and_ipv4_mapped_callers_count_as_ipv4():
-    from anthus_cli_login.broker.handler import caller_bucket
+    from cli_login.broker.handler import caller_bucket
 
     assert caller_bucket("2001:db8:1:2::1") == caller_bucket("2001:db8:1:2:ffff::9") == "2001:db8:1:2::/64"
     assert caller_bucket("2001:db8:1:3::1") != caller_bucket("2001:db8:1:2::1")

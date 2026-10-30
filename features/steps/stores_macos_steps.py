@@ -1,7 +1,7 @@
 from behave import given, then, when
 
-from anthus_cli_login.errors import AuthError
-from anthus_cli_login.stores.macos import MacOSKeychain, MacOSKeychainStore
+from cli_login.errors import AuthError
+from cli_login.stores.macos import MacOSKeychain, MacOSKeychainStore
 
 
 class FakeKeychain(MacOSKeychain):

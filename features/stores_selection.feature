@@ -27,7 +27,7 @@ Feature: Choosing a secure store
   Scenario: Nothing usable fails with exact recovery steps
     Given a Linux machine where no store is usable
     When a store is opened for the target
-    Then it fails with guidance naming "agent serve", "anthus-cli-login[linux]" and each store's reason
+    Then it fails with guidance naming "agent serve", "cli-login[linux]" and each store's reason
     And the guidance says plaintext storage is never used
 
   Scenario: Windows uses Credential Manager

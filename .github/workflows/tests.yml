@@ -62,11 +62,11 @@ jobs:
           names = zipfile.ZipFile(wheel).namelist()
           bad = [n for n in names if n.endswith("_test.py") or n.endswith("testing_processes.py")]
           assert not bad, f"test files shipped in the wheel: {bad}"
-          assert any(n.endswith("anthus_cli_login/__init__.py") for n in names), names
+          assert any(n.endswith("cli_login/__init__.py") for n in names), names
           print("wheel ok:", len(names), "files")
           PY
       - name: The installed wheel imports
         run: |
           python -m venv /tmp/wheel-venv
           /tmp/wheel-venv/bin/pip install dist/*.whl
-          cd /tmp && /tmp/wheel-venv/bin/python -c "import anthus_cli_login; print(anthus_cli_login.__file__)"
+          cd /tmp && /tmp/wheel-venv/bin/python -c "import cli_login; print(cli_login.__file__)"

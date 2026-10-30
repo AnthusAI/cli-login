@@ -2,7 +2,7 @@ import threading
 
 import pytest
 
-from anthus_cli_login.broker.transactions import (
+from cli_login.broker.transactions import (
     APPROVED,
     BOUND,
     DENIED,

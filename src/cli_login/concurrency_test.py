@@ -8,7 +8,7 @@ from .testing_processes import FileStore, spawn
 
 def run(command, state, store_file):
     return subprocess.Popen(
-        [sys.executable, "-m", "anthus_cli_login.testing_processes", command, str(state), str(store_file)],
+        [sys.executable, "-m", "cli_login.testing_processes", command, str(state), str(store_file)],
         stdout=subprocess.PIPE,
         text=True,
     )

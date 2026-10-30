@@ -49,4 +49,4 @@ Feature: The Linux Secret Service store
   Scenario: A missing optional dependency is unavailable and names the extra
     Given the secretstorage package is not installed
     When a Secret Service store is probed
-    Then it is unavailable with guidance mentioning "anthus-cli-login[linux]"
+    Then it is unavailable with guidance mentioning "cli-login[linux]"

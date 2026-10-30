@@ -6,9 +6,9 @@ from pathlib import Path
 
 from behave import given, then, when
 
-from anthus_cli_login.errors import AuthError
-from anthus_cli_login.locks import key_lock
-from anthus_cli_login.testing_processes import FileStore, spawn, wait_for
+from cli_login.errors import AuthError
+from cli_login.locks import key_lock
+from cli_login.testing_processes import FileStore, spawn, wait_for
 
 
 @given("a private state directory")
@@ -120,7 +120,7 @@ def race(context, renewals):
 
     def run(command):
         return subprocess.Popen(
-            [sys.executable, "-m", "anthus_cli_login.testing_processes", command, context.state, context.store_file],
+            [sys.executable, "-m", "cli_login.testing_processes", command, context.state, context.store_file],
             stdout=subprocess.PIPE,
             text=True,
         )
