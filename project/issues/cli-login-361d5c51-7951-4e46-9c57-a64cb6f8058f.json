@@ -3,17 +3,25 @@
   "title": "Broker: start, poll and the private approval operations",
   "description": "Owner: Cyclotron session. broker/handler.py, transactions.py, throttle.py and infra/broker.yaml per docs/design.md: POST /start and /poll on the function URL (per-caller rate limits, slow_down); describe, bind (once, sha256(N)), complete (checks N, stores the code) and deny only by IAM invoke; DynamoDB with TTL; the code handed out exactly once by conditional delete; every answer carries the protocol version; no token ever held. Gherkin: replayed, expired, denied, substituted, double-bound and concurrent-poll transactions yield nothing.",
   "type": "story",
-  "status": "open",
+  "status": "closed",
   "priority": 1,
   "assignee": null,
   "creator": null,
   "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
   "labels": [],
   "dependencies": [],
-  "comments": [],
+  "comments": [
+    {
+      "id": "0f074d42-8fea-4a3f-a1f0-09e126e1db49",
+      "author": "home",
+      "text": "Merged in AnthusAI/cli-login#2 (2026-10-30), CI green on Linux, macOS and Windows x Python 3.10 and 3.13; security review by the Papyrus session addressed in the same PR. Not deployed: each product's broker deploy needs Ryan's approval. Follow-ups on this board: real-browser check, global ceiling/WAF, Target.remote_callback_uri (#3).",
+      "created_at": "2026-10-30T11:57:13.140423Z",
+      "comment_type": "default"
+    }
+  ],
   "created_at": "2026-10-30T10:52:21.329537Z",
-  "updated_at": "2026-10-30T10:52:21.329554Z",
-  "closed_at": null,
+  "updated_at": "2026-10-30T11:57:13.154103Z",
+  "closed_at": "2026-10-30T11:57:13.153891Z",
   "right_now_summary": null,
   "right_now_updated_at": null,
   "custom": {}

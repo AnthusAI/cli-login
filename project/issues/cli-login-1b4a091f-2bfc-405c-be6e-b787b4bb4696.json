@@ -3,17 +3,25 @@
   "title": "Remote sign-in client and the written protocol",
   "description": "Owner: Cyclotron session. remote.py: makes V and P, calls /start, prints the URL and matching code, polls at the interval and backs off on slow_down, exchanges the code with V, verifies issuer, client, token_use, expiry and nonce. docs/protocol.md for clients in other languages, and conformance features any client or broker can run.",
   "type": "story",
-  "status": "open",
+  "status": "closed",
   "priority": 1,
   "assignee": null,
   "creator": null,
   "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
   "labels": [],
   "dependencies": [],
-  "comments": [],
+  "comments": [
+    {
+      "id": "af38f6c8-c6e6-480f-b8e1-e5aa090cb03d",
+      "author": "home",
+      "text": "Merged in AnthusAI/cli-login#2 (2026-10-30), CI green on Linux, macOS and Windows x Python 3.10 and 3.13; security review by the Papyrus session addressed in the same PR. Not deployed: each product's broker deploy needs Ryan's approval. Follow-ups on this board: real-browser check, global ceiling/WAF, Target.remote_callback_uri (#3).",
+      "created_at": "2026-10-30T11:57:13.163539Z",
+      "comment_type": "default"
+    }
+  ],
   "created_at": "2026-10-30T10:52:21.339765Z",
-  "updated_at": "2026-10-30T10:52:21.339783Z",
-  "closed_at": null,
+  "updated_at": "2026-10-30T11:57:13.173386Z",
+  "closed_at": "2026-10-30T11:57:13.173362Z",
   "right_now_summary": null,
   "right_now_updated_at": null,
   "custom": {}
