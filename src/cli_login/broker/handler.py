@@ -184,7 +184,11 @@ class Broker:
             taken = self.store.take(transaction)
             if taken is None:
                 return 400, {"error": "expired_token", "protocol": PROTOCOL_VERSION}
-            return 200, {"protocol": PROTOCOL_VERSION, "code": taken["code"], "redirect_uri": self.config.callback_uri}
+            answer = {"protocol": PROTOCOL_VERSION, "code": taken["code"], "redirect_uri": self.config.callback_uri}
+            for field, name in (("oidc_nonce", "nonce"), ("enrollment", "enrollment")):
+                if taken.get(field):
+                    answer[name] = taken[field]
+            return 200, answer
         if item["state"] == DENIED:
             return 400, {"error": "access_denied", "protocol": PROTOCOL_VERSION}
         self.store.transition(transaction, [PENDING, BOUND], {"last_poll_at": now}, expect={"last_poll_at": last})
@@ -218,10 +222,21 @@ class Broker:
         }
 
     def bind(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Pending to bound, once. A product may also set the OpenID nonce its sign-in uses (for example a central
+        identity challenge's nonce) and an opaque ``enrollment`` string, both handed to the CLI with the code."""
         nonce_hash = event.get("nonce_hash")
         if self._live(event.get("transaction"), [PENDING]) is None or not HEX64.fullmatch(str(nonce_hash or "")):
             return {"ok": False, "error": "unavailable"}
-        bound = self.store.transition(event["transaction"], [PENDING], {"state": BOUND, "nonce_hash": nonce_hash})
+        changes = {"state": BOUND, "nonce_hash": nonce_hash}
+        if "nonce" in event:
+            if not NONCE.fullmatch(str(event["nonce"])):
+                return {"ok": False, "error": "unavailable"}
+            changes["oidc_nonce"] = event["nonce"]
+        if "enrollment" in event:
+            if not isinstance(event["enrollment"], str) or not event["enrollment"]:
+                return {"ok": False, "error": "unavailable"}
+            changes["enrollment"] = event["enrollment"]
+        bound = self.store.transition(event["transaction"], [PENDING], changes)
         return {"ok": True} if bound else {"ok": False, "error": "unavailable"}
 
     def complete(self, event: dict[str, Any]) -> dict[str, Any]:

@@ -1,6 +1,8 @@
 import base64
 import json
 
+import pytest
+
 from cli_login.broker import throttle
 from cli_login.broker.handler import Broker, BrokerConfig, matching_code, sha256_hex
 from cli_login.broker.transactions import MemoryTransactions
@@ -301,3 +303,32 @@ def test_the_ceiling_resets_with_the_window():
     assert b.start(start_body(), "caller-new")[0] == 429
     clock.now += 60
     assert b.start(start_body(), "caller-new")[0] == 200
+
+
+def test_a_product_nonce_and_enrollment_set_at_bind_come_back_once_with_the_code():
+    clock = Clock()
+    b = broker(clock)
+    transaction = started(b)
+    assert b.bind({"transaction": transaction, "nonce_hash": sha256_hex("n"), "nonce": "challenge-nonce-0001",
+                   "enrollment": "sealed-proof"}) == {"ok": True}
+    assert b.complete({"transaction": transaction, "nonce": "n", "code": "code"}) == {"ok": True}
+    clock.now += 5
+    status, answer = b.poll({"transaction": transaction, "poll_secret": SECRET}, "ip")
+    assert status == 200 and answer["nonce"] == "challenge-nonce-0001" and answer["enrollment"] == "sealed-proof"
+
+
+def test_without_a_product_nonce_the_poll_answer_is_unchanged():
+    clock = Clock()
+    b = broker(clock)
+    transaction = started(b)
+    approve(b, transaction)
+    clock.now += 5
+    assert set(b.poll({"transaction": transaction, "poll_secret": SECRET}, "ip")[1]) == {"protocol", "code", "redirect_uri"}
+
+
+@pytest.mark.parametrize("extra", [{"nonce": "short"}, {"nonce": 5}, {"enrollment": ""}, {"enrollment": ["x"]}])
+def test_a_malformed_product_nonce_or_enrollment_is_refused_and_nothing_is_bound(extra):
+    b = broker()
+    transaction = started(b)
+    assert b.bind({"transaction": transaction, "nonce_hash": sha256_hex("n"), **extra}) == {"ok": False, "error": "unavailable"}
+    assert b.describe({"transaction": transaction})["ok"] is True
