@@ -104,6 +104,10 @@ class Broker:
     def start(self, body: dict[str, Any], caller: str) -> tuple[int, dict[str, Any]]:
         if not throttle.allowed(self.store, "start", caller, throttle.START, self.now()):
             return 429, {"error": "too_many_requests", "retry_after": throttle.START.window_seconds}
+        if not throttle.allowed(self.store, "start", throttle.EVERYONE, throttle.ALL_STARTS, self.now()):
+            # One line the template's metric filter counts, so a flood raises the broker's alarm.
+            print(json.dumps({"event": "cli_login_start_ceiling", "limit": throttle.ALL_STARTS.calls}))
+            return 429, {"error": "too_many_requests", "retry_after": throttle.ALL_STARTS.window_seconds}
         try:
             if body.get("protocol") != PROTOCOL_VERSION:
                 return 400, {"error": "unsupported_protocol", "protocol": PROTOCOL_VERSION}

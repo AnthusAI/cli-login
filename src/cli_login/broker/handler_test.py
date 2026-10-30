@@ -282,3 +282,22 @@ def test_the_config_requires_its_client_targets_and_https_pages():
         "BROKER_CALLBACK_URI": "https://a.example.test/cli/callback",
     })
     assert config.targets == ("https://a.example.test",)
+
+
+def test_starts_across_all_callers_have_one_ceiling_and_say_so_in_the_log(capsys):
+    b = broker()
+    callers = [f"198.51.100.{n}" for n in range(throttle.ALL_STARTS.calls // throttle.START.calls + 2)]
+    statuses = [b.start(start_body(), caller)[0] for caller in callers for _ in range(throttle.START.calls)]
+    assert statuses.count(200) == throttle.ALL_STARTS.calls
+    assert b.start(start_body(), "203.0.113.200") == (429, {"error": "too_many_requests", "retry_after": 60})
+    assert '"event": "cli_login_start_ceiling"' in capsys.readouterr().out
+
+
+def test_the_ceiling_resets_with_the_window():
+    clock = Clock()
+    b = broker(clock)
+    for n in range(throttle.ALL_STARTS.calls):
+        b.start(start_body(), f"caller-{n}")
+    assert b.start(start_body(), "caller-new")[0] == 429
+    clock.now += 60
+    assert b.start(start_body(), "caller-new")[0] == 200
