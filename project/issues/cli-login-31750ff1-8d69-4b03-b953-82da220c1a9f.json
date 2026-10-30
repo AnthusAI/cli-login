@@ -3,7 +3,7 @@
   "title": "Store sessions on Linux and Windows, in memory on cloud machines, with per-key locks",
   "description": "Owner: Papyrus session. stores/secret_service.py, stores/kernel_keyring.py (probe first: Docker's default seccomp blocks keyctl/add_key), stores/agent.py (memory-only, 0600 Unix socket, '<product> auth agent --status|stop', never on disk), stores/windows.py (Credential Manager; refresh token only, 2,560-byte blob limit), in that order after macOS, each failing closed with recovery guidance and never plaintext. Backends named explicitly. locks.py: one fcntl/LockFileEx lock per key. Specs with fake backends; locked/absent stores; concurrent refresh and logout; symlink and permission refusal; fresh child processes; CI on Linux, macOS and Windows.",
   "type": "story",
-  "status": "in_progress",
+  "status": "closed",
   "priority": 1,
   "assignee": null,
   "creator": null,
@@ -22,11 +22,18 @@
         "model": "Claude Sonnet 5.5",
         "name": "Stores And Locks"
       }
+    },
+    {
+      "id": "0756349b-59d2-4dfb-ac24-1307bb50e1e1",
+      "author": "home",
+      "text": "Done in #4 (merged, green on ubuntu/macos/windows x 3.10/3.13): Secret Service, kernel keyring, memory agent, Windows Credential Manager with crash-safe chunks, cross-platform per-key locks, fail-closed selection. Real backends exercised in CI: Windows locks + Credential Manager, gnome-keyring under dbus-run-session, kernel keyring, agent over a real socket. Fakes only: macOS Keychain. Gap: no memory agent on Windows (Credential Manager only). Follow-up commit keeps specs and the plaintext test FileStore out of the wheel and broker zip.",
+      "created_at": "2026-10-30T12:10:43.690324Z",
+      "comment_type": "default"
     }
   ],
   "created_at": "2026-10-30T10:52:21.319631Z",
-  "updated_at": "2026-10-30T12:07:40.338022Z",
-  "closed_at": null,
+  "updated_at": "2026-10-30T12:10:44.027751Z",
+  "closed_at": "2026-10-30T12:10:44.027366Z",
   "right_now_summary": null,
   "right_now_updated_at": null,
   "custom": {
