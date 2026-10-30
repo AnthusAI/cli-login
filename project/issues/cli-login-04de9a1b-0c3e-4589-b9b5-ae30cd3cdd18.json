@@ -1,0 +1,28 @@
+{
+  "id": "cli-login-04de9a1b-0c3e-4589-b9b5-ae30cd3cdd18",
+  "title": "Release the library and prove renewal for 24 hours",
+  "description": "Release from main with an exact version products pin (registry or git tag: Ryan to choose). Each release reports separately: simulated-clock specs over 24 hours; each adopter client's provider settings; an actual run of 24 hours or more from a cloud session logged in with --remote.",
+  "type": "story",
+  "status": "open",
+  "priority": 1,
+  "assignee": null,
+  "creator": null,
+  "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "labels": [],
+  "dependencies": [],
+  "comments": [
+    {
+      "id": "fee91f45-11f0-48ec-84d9-c91988e3cd1f",
+      "author": "home",
+      "text": "PyPI release PR (semantic-release on main, OIDC trusted publishing, wheel checks in CI): https://github.com/AnthusAI/cli-login/pull/6",
+      "created_at": "2026-10-30T12:28:43.771635Z",
+      "comment_type": "default"
+    }
+  ],
+  "created_at": "2026-10-30T10:52:21.363488Z",
+  "updated_at": "2026-10-30T12:28:43.772215Z",
+  "closed_at": null,
+  "right_now_summary": null,
+  "right_now_updated_at": null,
+  "custom": {}
+}

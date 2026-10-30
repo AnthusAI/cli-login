@@ -1,1 +1,6 @@
 project/.overlay/
+.venv/
+__pycache__/
+*.egg-info/
+dist/
+*.zip

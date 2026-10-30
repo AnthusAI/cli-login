@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "78d07504-8941-45fc-aa87-a883260179b6",
+  "issue_id": "cli-login-361d5c51-7951-4e46-9c57-a64cb6f8058f",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T10:52:21.329Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Broker: start, poll and the private approval operations",
+    "description": "Owner: Cyclotron session. broker/handler.py, transactions.py, throttle.py and infra/broker.yaml per docs/design.md: POST /start and /poll on the function URL (per-caller rate limits, slow_down); describe, bind (once, sha256(N)), complete (checks N, stores the code) and deny only by IAM invoke; DynamoDB with TTL; the code handed out exactly once by conditional delete; every answer carries the protocol version; no token ever held. Gherkin: replayed, expired, denied, substituted, double-bound and concurrent-poll transactions yield nothing.",
+    "issue_type": "story",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}

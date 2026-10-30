@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  cli-login broker for one product deployment: hands one authorization code to the one CLI that asked for it, and
+  never holds a token. The CLI calls the function URL for /start and /poll; the product's backend invokes the
+  function directly (IAM) for describe, bind, complete and deny. See docs/design.md and docs/protocol.md.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: Bucket holding the broker zip (scripts/build_broker.py)
+  CodeKey:
+    Type: String
+    Description: Key of the broker zip; content-addressed, so a new key deploys new code
+  ClientId:
+    Type: String
+    Description: The product's Cognito app client id; the broker serves only this client
+  Targets:
+    Type: String
+    Description: JSON list of the API endpoints a CLI may sign in to through this broker
+  ApprovalUrl:
+    Type: String
+    AllowedPattern: https://.+
+    Description: The product's approval page, for example https://app.example.test/cli/approve
+  CallbackUri:
+    Type: String
+    AllowedPattern: https://.+
+    Description: The product's callback page, registered on the Cognito client, for example https://app.example.test/cli/callback
+  InvokerRoleArn:
+    Type: String
+    Description: The product backend role that serves the two pages and may invoke describe, bind, complete and deny
+  ReservedConcurrency:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    Description: The most broker invocations at once; bounds what an abusive caller can cost, with the per-caller limits
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues: [7, 14, 30, 60, 90, 180, 365]
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: Optional SNS topic told when the broker is throttled
+
+Conditions:
+  HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+
+Resources:
+  Transactions:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  BrokerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: transactions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+                Resource: !GetAtt Transactions.Arn
+
+  BrokerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref LogRetentionDays
+
+  Broker:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      LoggingConfig:
+        LogGroup: !Ref BrokerLogs
+      Handler: cli_login.broker.handler.lambda_handler
+      Role: !GetAtt BrokerRole.Arn
+      Timeout: 10
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref CodeKey
+      Environment:
+        Variables:
+          BROKER_TABLE: !Ref Transactions
+          BROKER_CLIENT_ID: !Ref ClientId
+          BROKER_TARGETS: !Ref Targets
+          BROKER_APPROVAL_URL: !Ref ApprovalUrl
+          BROKER_CALLBACK_URI: !Ref CallbackUri
+
+  BrokerUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt Broker.Arn
+      AuthType: NONE
+
+  PublicUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Broker
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  PublicUrlInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Broker
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
+  PagesInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Broker
+      Action: lambda:InvokeFunction
+      Principal: !Ref InvokerRoleArn
+
+  ThrottledAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: The cli-login broker is being throttled at its reserved concurrency
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref Broker
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+
+Outputs:
+  BrokerEndpoint:
+    Description: The CLI's broker endpoint (the product's discovery data publishes it as remote_login_endpoint)
+    Value: !GetAtt BrokerUrl.FunctionUrl
+  BrokerFunctionArn:
+    Description: The function the product's backend invokes for describe, bind, complete and deny
+    Value: !GetAtt Broker.Arn

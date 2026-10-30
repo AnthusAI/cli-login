@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "b9260b7c-7ee0-4df4-a3e0-618bf6410f7f",
+  "issue_id": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T10:52:21.293Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "One CLI login for every Anthus product",
+    "description": "Build the shared CLI login described in docs/design.md: a Python library (PKCE sign-in, remote sign-in, five secure stores, the memory agent, per-key locks, renewal, logout), one broker per product deployment, and a language-neutral protocol with conformance specs. Adopters: Papyrus first, then Cyclotron and Auritus; Chatticus implements the protocol when it has a CLI. Products stay separate by key namespace, client, discovery data and sessions. Live changes in each product (Cognito callback URL, broker deploy, pages, IAM grant) need Ryan's approval.",
+    "issue_type": "epic",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": null,
+    "labels": []
+  }
+}

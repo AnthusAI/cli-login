@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "02962f12-cc16-413f-94b1-9ac250cfe43a",
+  "issue_id": "cli-login-31750ff1-8d69-4b03-b953-82da220c1a9f",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T10:52:21.319Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Store sessions on Linux and Windows, in memory on cloud machines, with per-key locks",
+    "description": "Owner: Papyrus session. stores/secret_service.py, stores/kernel_keyring.py (probe first: Docker's default seccomp blocks keyctl/add_key), stores/agent.py (memory-only, 0600 Unix socket, '<product> auth agent --status|stop', never on disk), stores/windows.py (Credential Manager; refresh token only, 2,560-byte blob limit), in that order after macOS, each failing closed with recovery guidance and never plaintext. Backends named explicitly. locks.py: one fcntl/LockFileEx lock per key. Specs with fake backends; locked/absent stores; concurrent refresh and logout; symlink and permission refusal; fresh child processes; CI on Linux, macOS and Windows.",
+    "issue_type": "story",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}

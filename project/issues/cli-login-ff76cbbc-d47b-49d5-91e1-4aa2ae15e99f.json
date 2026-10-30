@@ -1,0 +1,28 @@
+{
+  "id": "cli-login-ff76cbbc-d47b-49d5-91e1-4aa2ae15e99f",
+  "title": "Approval and callback page handlers that products mount",
+  "description": "Owner: Cyclotron session. broker/pages.py: framework-neutral handlers for /cli/approve (describe, show requester, matching code, target and privileges, ask the person to compare the code, CSRF-checked Approve that binds sha256(N) and redirects to /oauth2/authorize; Deny) and /cli/callback (check N against the cookie, invoke complete). Adapters for the products' web stacks are the products' own work (Papyrus Next.js, Cyclotron FastAPI).",
+  "type": "story",
+  "status": "closed",
+  "priority": 1,
+  "assignee": null,
+  "creator": null,
+  "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "labels": [],
+  "dependencies": [],
+  "comments": [
+    {
+      "id": "17364c81-e38a-4c89-b3df-717fd69d23fe",
+      "author": "home",
+      "text": "Merged in AnthusAI/cli-login#2 (2026-10-30), CI green on Linux, macOS and Windows x Python 3.10 and 3.13; security review by the Papyrus session addressed in the same PR. Not deployed: each product's broker deploy needs Ryan's approval. Follow-ups on this board: real-browser check, global ceiling/WAF, Target.remote_callback_uri (#3).",
+      "created_at": "2026-10-30T11:57:13.183111Z",
+      "comment_type": "default"
+    }
+  ],
+  "created_at": "2026-10-30T10:52:21.350788Z",
+  "updated_at": "2026-10-30T11:57:13.193061Z",
+  "closed_at": "2026-10-30T11:57:13.193038Z",
+  "right_now_summary": null,
+  "right_now_updated_at": null,
+  "custom": {}
+}

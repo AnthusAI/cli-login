@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "811313ad-5bef-4918-a09b-0c6fbee06c27",
+  "issue_id": "cli-login-ff76cbbc-d47b-49d5-91e1-4aa2ae15e99f",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T10:52:21.350Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Approval and callback page handlers that products mount",
+    "description": "Owner: Cyclotron session. broker/pages.py: framework-neutral handlers for /cli/approve (describe, show requester, matching code, target and privileges, ask the person to compare the code, CSRF-checked Approve that binds sha256(N) and redirects to /oauth2/authorize; Deny) and /cli/callback (check N against the cookie, invoke complete). Adapters for the products' web stacks are the products' own work (Papyrus Next.js, Cyclotron FastAPI).",
+    "issue_type": "story",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}

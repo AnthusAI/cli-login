@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cli-login"
+version = "0.0.0"
+description = "One CLI login for every Anthus product: PKCE sign-in, remote approval, secure storage and renewal."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Anthus AI" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "behave>=1.2.6", "ruff>=0.6"]
+linux = ["secretstorage>=3.3; sys_platform == 'linux'"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cli_login"]
+# Specs and the multi-process test helpers (including a plaintext FileStore) never ship.
+exclude = ["**/*_test.py", "src/cli_login/testing_processes.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["src", "infra"]
+python_files = ["*_test.py"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/cli_login/__init__.py:__version__"]
+branch = "main"
+tag_format = "v{version}"
+allow_zero_version = true
+major_on_zero = false
+commit_message = "chore(release): {version} [skip ci]"
+build_command = ""

@@ -1,0 +1,28 @@
+{
+  "id": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+  "title": "One CLI login for every Anthus product",
+  "description": "Build the shared CLI login described in docs/design.md: a Python library (PKCE sign-in, remote sign-in, five secure stores, the memory agent, per-key locks, renewal, logout), one broker per product deployment, and a language-neutral protocol with conformance specs. Adopters: Papyrus first, then Cyclotron and Auritus; Chatticus implements the protocol when it has a CLI. Products stay separate by key namespace, client, discovery data and sessions. Live changes in each product (Cognito callback URL, broker deploy, pages, IAM grant) need Ryan's approval.",
+  "type": "epic",
+  "status": "open",
+  "priority": 1,
+  "assignee": null,
+  "creator": null,
+  "parent": null,
+  "labels": [],
+  "dependencies": [],
+  "comments": [
+    {
+      "id": "576d2726-0970-47d2-8a62-2944ef474cc3",
+      "author": "home",
+      "text": "Interfaces agreed between the Papyrus and Cyclotron sessions (2026-10-30). session.py (Papyrus session): Session.store_token_set(response: Mapping[str, Any], *, previous: Record | None = None) -> Record. It takes the raw Cognito token-endpoint response (id_token, access_token, expires_in, optional refresh_token), checks iss, aud, token_use and exp against the Target, keeps the previous refresh token when none is returned, writes under the Target's key and per-key lock, returns {subject, label, created_at}, and raises AuthError saving nothing on any mismatch (today Papyrus's Session._consume). Local sign-in and remote.py both call it after their code exchange. target.py (Cyclotron session): Target carries issuer, client_id, oauth_domain, token_endpoint, api_endpoint (the endpoint it is bound to), a stable key string (Papyrus keeps its per-site key so Keychain entries match), and the product namespace used as the store service name ('papyrus-newsroom-oauth' for Papyrus), plus the broker endpoint and callback URI for remote sign-in. Broker: /start and /poll on the function URL; describe, bind, complete, deny by IAM invoke only.",
+      "created_at": "2026-10-30T10:53:42.529652Z",
+      "comment_type": "default"
+    }
+  ],
+  "created_at": "2026-10-30T10:52:21.293805Z",
+  "updated_at": "2026-10-30T10:53:42.529935Z",
+  "closed_at": null,
+  "right_now_summary": null,
+  "right_now_updated_at": null,
+  "custom": {}
+}

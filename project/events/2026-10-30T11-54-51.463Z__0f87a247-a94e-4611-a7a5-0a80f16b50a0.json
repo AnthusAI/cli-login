@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "0f87a247-a94e-4611-a7a5-0a80f16b50a0",
+  "issue_id": "cli-login-cccc972a-7df2-4795-9f9b-d8805dfc142e",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T11:54:51.463Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Add a global ceiling or WAF in front of each broker's function URL",
+    "description": "From the security review of #2 (finding 2). #2 added per-caller limits (IPv6 by /64), reserved concurrency, and a throttle alarm. Still open: a global counter or an AWS WAF rate rule in front of the function URL, decided per product deployment before its first live broker deploy, and with Ryan's approval since it changes live infrastructure.",
+    "issue_type": "task",
+    "status": "open",
+    "priority": 2,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}

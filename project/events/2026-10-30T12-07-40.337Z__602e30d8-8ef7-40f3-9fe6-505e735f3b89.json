@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "event_id": "602e30d8-8ef7-40f3-9fe6-505e735f3b89",
+  "issue_id": "cli-login-31750ff1-8d69-4b03-b953-82da220c1a9f",
+  "event_type": "comment_added",
+  "occurred_at": "2026-10-30T12:07:40.337Z",
+  "actor_id": "home",
+  "payload": {
+    "comment_id": "0c60a4a0-cca2-4720-8e5e-83e312c5038b",
+    "comment_author": "home",
+    "agent": {
+      "platform": "claude_code",
+      "model": "Claude Sonnet 5.5",
+      "name": "Stores And Locks"
+    }
+  }
+}

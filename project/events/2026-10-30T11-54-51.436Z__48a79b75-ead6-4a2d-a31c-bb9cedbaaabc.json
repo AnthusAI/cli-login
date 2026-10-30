@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "48a79b75-ead6-4a2d-a31c-bb9cedbaaabc",
+  "issue_id": "cli-login-85e67311-6ca7-4c57-9e44-4d414ebc618f",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T11:54:51.436Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Check the approval flow in real browsers before the first live proof",
+    "description": "From the security review of #2 (finding 4). The pages now send form-action 'self' plus the sign-in provider's origin, because Chromium applies form-action to the 303 that follows the approve POST. Prove the whole approve, sign-in and callback flow in current Chrome, Safari and Firefox on a test deployment (cookies with the __Secure- prefix, SameSite=Lax on the return from Cognito, CSP) before any product's first live proof.",
+    "issue_type": "task",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}

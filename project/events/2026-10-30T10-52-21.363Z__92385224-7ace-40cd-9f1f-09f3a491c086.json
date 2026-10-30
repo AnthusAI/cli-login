@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "event_id": "92385224-7ace-40cd-9f1f-09f3a491c086",
+  "issue_id": "cli-login-04de9a1b-0c3e-4589-b9b5-ae30cd3cdd18",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-30T10:52:21.363Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Release the library and prove renewal for 24 hours",
+    "description": "Release from main with an exact version products pin (registry or git tag: Ryan to choose). Each release reports separately: simulated-clock specs over 24 hours; each adopter client's provider settings; an actual run of 24 hours or more from a cloud session logged in with --remote.",
+    "issue_type": "story",
+    "status": "open",
+    "priority": 1,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": []
+  }
+}
