@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "event_id": "447020e8-b028-4fbe-9207-869e9aff8ee6",
+  "issue_id": "cli-login-96ed2301-f038-4d76-84bb-b670184ab538",
+  "event_type": "comment_added",
+  "occurred_at": "2026-10-30T11:43:05.062Z",
+  "actor_id": "home",
+  "payload": {
+    "comment_id": "3dc9ae84-9658-4a4f-b7bd-7491ac1fa492",
+    "comment_author": "home",
+    "agent": {
+      "platform": "claude_code",
+      "model": "Sonnet 5.5",
+      "name": "Move Login"
+    }
+  }
+}
