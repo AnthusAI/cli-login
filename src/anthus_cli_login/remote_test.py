@@ -194,3 +194,38 @@ def test_a_rate_limited_start_says_to_wait():
     with pytest.raises(RemoteLoginError) as raised:
         world.login()
     assert raised.value.transient and raised.value.code == "too_many_requests"
+
+
+def test_a_remote_sign_in_is_saved_by_the_session_under_the_targets_key(tmp_path):
+    from anthus_cli_login.session import Session
+    from anthus_cli_login.testing import FakeClock, FakeStore, make_id_token, make_target
+
+    world = World()
+    target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
+                         callback_uri="https://app.example.test/cli/callback")
+    clock, store = FakeClock(world.now), FakeStore()
+    session = Session(target, store=store, clock=clock, state_dir=tmp_path)
+    original = world.http
+
+    def provider(method, url, **kwargs):
+        status, body, headers = original(method, url, **kwargs)
+        if url == TOKEN and status == 200:
+            claims = json.loads(base64.urlsafe_b64decode(make_id_token(clock()).split(".")[1] + "==="))
+            body["id_token"] = jwt({**claims, "nonce": world.issued_nonce})
+        return status, body, headers
+
+    world.http = provider
+    record = remote_login(target, session.store_token_set, http=world.http, out=world.printed.append,
+                          clock=world.clock, sleep=world.sleep, host="cloud-box")
+    assert record["subject"] == "person-1"
+    assert store.data and "refresh" in json.dumps(list(store.data.values()))
+
+
+def test_a_broker_callback_that_differs_from_the_targets_is_refused():
+    from anthus_cli_login.testing import make_target
+
+    target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
+                         callback_uri="https://other.example.test/cli/callback")
+    with pytest.raises(RemoteLoginError) as raised:
+        World().login(target=target)
+    assert raised.value.code == "invalid_broker_answer"

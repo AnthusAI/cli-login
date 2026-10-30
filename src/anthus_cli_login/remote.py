@@ -23,18 +23,16 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from . import PROTOCOL_VERSION, __version__
+from .errors import AuthError, OAuthError
 
 
-class RemoteLoginError(ValueError):
-    """A remote sign-in that did not finish. ``transient`` says whether trying again later may work.
-
-    Matches the shape of ``errors.OAuthError`` (``code`` and ``transient``) until that module lands.
-    """
+class RemoteLoginError(OAuthError):
+    """A remote sign-in that did not finish. ``transient`` says whether trying again later may work."""
 
     def __init__(self, code: str, message: str, *, transient: bool = False):
-        super().__init__(message)
         self.code = code
         self.transient = transient
+        AuthError.__init__(self, message)
 
 
 def default_http(method: str, url: str, *, json_body=None, form=None, timeout: float = 30) -> tuple[int, dict[str, Any], dict[str, str]]:
@@ -151,6 +149,9 @@ def remote_login(
             raise RemoteLoginError(error or "poll_refused", "The sign-in broker refused the sign-in.")
 
     authorization_code, redirect_uri = answer.get("code"), _https(answer.get("redirect_uri"), "redirect URI")
+    expected = getattr(target, "callback_uri", None)
+    if isinstance(expected, str) and expected.startswith("https://") and redirect_uri != expected:
+        raise RemoteLoginError("invalid_broker_answer", "The broker answered a callback this target does not use.")
     if not isinstance(authorization_code, str) or not authorization_code:
         raise RemoteLoginError("invalid_broker_answer", "The broker answered without a code.")
     try:
