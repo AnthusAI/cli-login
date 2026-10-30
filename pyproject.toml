@@ -14,9 +14,12 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "behave>=1.2.6", "ruff>=0.6"]
+linux = ["secretstorage>=3.3; sys_platform == 'linux'"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/anthus_cli_login"]
+# Specs and the multi-process test helpers (including a plaintext FileStore) never ship.
+exclude = ["**/*_test.py", "src/anthus_cli_login/testing_processes.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["src", "infra"]

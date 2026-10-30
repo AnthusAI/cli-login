@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import re
-import sys
 from dataclasses import dataclass
 
 import pytest
@@ -198,7 +197,6 @@ def test_a_rate_limited_start_says_to_wait():
     assert raised.value.transient and raised.value.code == "too_many_requests"
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="locks are POSIX only until the Windows story")
 def test_a_remote_sign_in_is_saved_by_the_session_under_the_targets_key(tmp_path):
     from anthus_cli_login.session import Session
     from anthus_cli_login.testing import FakeClock, FakeStore, make_id_token, make_target

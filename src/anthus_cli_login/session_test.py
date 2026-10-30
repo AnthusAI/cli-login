@@ -1,13 +1,10 @@
 import json
-import sys
 
 import pytest
 
 from .errors import AuthError, OAuthError
 from .session import Session
 from .testing import FakeClock, FakeProvider, FakeStore, make_id_token, make_target
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="locks are POSIX only until the Windows story")
 
 
 @pytest.fixture

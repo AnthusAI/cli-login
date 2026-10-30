@@ -51,15 +51,17 @@ The library does the rest:
   2. Linux Secret Service (D-Bus);
   3. the Linux kernel keyring, after a probe, because Docker's default seccomp profile blocks `keyctl` and
      `add_key`;
-  4. the memory agent;
-  5. Windows Credential Manager, where a blob is at most 2,560 bytes, so it stores only the refresh token.
+  4. the memory agent (Linux and macOS);
+  5. Windows Credential Manager (the only Windows store), where a blob is at most 2,560 bytes, so a larger
+     value is split into generation-tagged chunks behind a header that holds a checksum; the header is switched
+     last, so a crash never leaves a mix of old and new chunks.
 
   Backends are named explicitly, so a library such as `keyring` can never choose a plaintext backend on its own.
   A product may keep an existing Keychain service name, so its existing sessions survive.
 - **The memory agent.** It runs as `<product> auth agent`, with `--status` and `stop`, in the style of
   ssh-agent. It holds refresh tokens in memory only, behind a 0600 Unix socket, never on disk, one agent per
-  product. After a restart, the person approves again.
-- **Locks.** One cross-platform lock per stored key (`fcntl` on POSIX, `LockFileEx` on Windows), never a global
+  product. After a restart, the person approves again. It is not supported on Windows in this version.
+- **Locks.** One cross-platform lock per stored key (`flock` on POSIX, `msvcrt.locking` on Windows), never a global
   lock.
 - **Renewal.** It refreshes shortly before the access token expires, while holding the key's lock, so
   concurrent processes never lose a rotated refresh token. On `invalid_grant` it ends the session with recovery

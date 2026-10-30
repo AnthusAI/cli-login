@@ -100,3 +100,159 @@ class FakeProvider:
             "refresh_token": "refresh-secret-" + str(len(self.calls)),
             "expires_in": 3600,
         }
+
+
+class FakeKeyctl:
+    """An in-memory kernel keyring with the same methods as ``Keyctl``. ``blocked`` mimics a seccomp profile."""
+
+    def __init__(self, *, blocked=None, persistent=True):
+        import errno
+
+        self.errno = errno
+        self.blocked = blocked  # an errno, e.g. EPERM, raised by every call
+        self.persistent = persistent
+        self.keys = {}  # (ring, description) -> (id, payload)
+        self.ids = {}
+        self.next_id = 100
+
+    def _guard(self):
+        if self.blocked:
+            raise OSError(self.blocked, "blocked")
+
+    def user_keyring(self):
+        self._guard()
+        return 1
+
+    def persistent_keyring(self):
+        self._guard()
+        if not self.persistent:
+            raise OSError(95, "no persistent keyrings")
+        return 2
+
+    def add_key(self, ring, description, payload):
+        self._guard()
+        existing = self.keys.get((ring, description))
+        key_id = existing[0] if existing else self.next_id
+        if not existing:
+            self.next_id += 1
+        self.keys[(ring, description)] = (key_id, bytes(payload))
+        self.ids[key_id] = (ring, description)
+        return key_id
+
+    def search(self, ring, description):
+        self._guard()
+        if (ring, description) not in self.keys:
+            raise OSError(126, "no key")  # ENOKEY on Linux
+        return self.keys[(ring, description)][0]
+
+    def read(self, key):
+        self._guard()
+        return self.keys[self.ids[key]][1]
+
+    def unlink(self, key, ring):
+        self._guard()
+        self.keys.pop(self.ids.pop(key))
+
+
+class FakeCredentialManager:
+    """In-memory Credential Manager with the real 2,560-byte blob limit and optional crash injection."""
+
+    def __init__(self, *, fail_after_writes=None, broken=False):
+        self.items = {}
+        self.writes = 0
+        self.fail_after_writes = fail_after_writes  # raise on the write after this many succeeded
+        self.broken = broken
+
+    def _guard(self):
+        if self.broken:
+            raise OSError(5, "access denied")
+
+    def write(self, target, blob, user):
+        self._guard()
+        if len(blob) > 2560:
+            raise OSError(1783, "blob too large")
+        if self.fail_after_writes is not None and self.writes >= self.fail_after_writes:
+            raise OSError(1, "simulated crash")
+        self.writes += 1
+        self.items[target] = bytes(blob)
+
+    def read(self, target):
+        self._guard()
+        return self.items.get(target)
+
+    def delete(self, target):
+        self._guard()
+        self.items.pop(target, None)
+
+    def enumerate(self, prefix):
+        self._guard()
+        return [t for t in list(self.items) if t.startswith(prefix)]
+
+
+class FakeSecretStorage:
+    """A stand-in for the ``secretstorage`` module: a default collection that can be locked or missing."""
+
+    class exceptions:
+        class SecretStorageException(Exception):
+            pass
+
+        class SecretServiceNotAvailableException(SecretStorageException):
+            pass
+
+        class LockedException(SecretStorageException):
+            pass
+
+    class _Item:
+        def __init__(self, collection, attributes, secret):
+            self.collection, self.attributes, self.secret = collection, attributes, secret
+
+        def get_secret(self):
+            return self.secret
+
+        def delete(self):
+            self.collection.items.remove(self)
+
+    class _Collection:
+        def __init__(self, owner):
+            self.owner, self.items = owner, []
+
+        def is_locked(self):
+            return self.owner.locked
+
+        def create_item(self, label, attributes, secret, replace=False, content_type="text/plain"):
+            if replace:
+                self.items = [i for i in self.items if i.attributes != attributes]
+            self.owner.labels.append(label)
+            item = FakeSecretStorage._Item(self, dict(attributes), secret)
+            self.items.append(item)
+            return item
+
+        def search_items(self, attributes):
+            return iter([i for i in self.items if i.attributes == attributes])
+
+    class _Connection:
+        def close(self):
+            pass
+
+    def __init__(self, *, locked=False, no_bus=False):
+        self.locked, self.no_bus, self.labels = locked, no_bus, []
+        self.collection = self._Collection(self)
+
+    def dbus_init(self):
+        if self.no_bus:
+            raise self.exceptions.SecretServiceNotAvailableException("raw bus failure naming secret-value")
+        return self._Connection()
+
+    def get_default_collection(self, connection):
+        return self.collection
+
+
+def skip_or_fail(name: str, reason: str) -> None:
+    """Skip a real-backend spec, unless CI requires that backend (ANTHUS_REQUIRE_REAL lists its name)."""
+    import os
+
+    import pytest
+
+    if name in os.environ.get("ANTHUS_REQUIRE_REAL", "").split(","):
+        pytest.fail(f"{name} is required in this run but unavailable: {reason}")
+    pytest.skip(f"{name} unavailable: {reason}")

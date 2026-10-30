@@ -15,7 +15,7 @@ PACKAGE = ROOT / "src" / "anthus_cli_login"
 
 
 def build(out: Path) -> str:
-    files = sorted(p for p in PACKAGE.rglob("*.py") if not p.name.endswith("_test.py") and p.name != "testing.py")
+    files = sorted(p for p in PACKAGE.rglob("*.py") if not p.name.endswith("_test.py") and p.name not in ("testing.py", "testing_processes.py"))
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in files:
             info = zipfile.ZipInfo(str(path.relative_to(ROOT / "src")), date_time=(1980, 1, 1, 0, 0, 0))
