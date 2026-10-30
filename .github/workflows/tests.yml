@@ -18,8 +18,28 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e ".[dev]"
+      - name: Linux extras and a real Secret Service keyring
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnome-keyring dbus-x11 libsecret-1-0
+          python -m pip install -e ".[dev,linux]"
       - run: python -m ruff check .
-      - run: python -m pytest -q
-      - name: Gherkin specs
+      - name: Specs and Gherkin features
+        if: runner.os != 'Linux'
         shell: bash
-        run: if compgen -G "features/*.feature" > /dev/null; then python -m behave features; else echo "no features yet"; fi
+        run: |
+          python -m pytest -q -rs
+          python -m behave features
+      - name: Specs and Gherkin features, with a real Secret Service and kernel keyring
+        if: runner.os == 'Linux'
+        env:
+          # A skipped real backend fails the run instead of passing silently.
+          ANTHUS_REQUIRE_REAL: secret-service,kernel-keyring
+        run: |
+          dbus-run-session -- bash -c '
+            set -e
+            echo -n "ci-test-password" | gnome-keyring-daemon --unlock --components=secrets > /dev/null
+            python -m pytest -q -rs
+            python -m behave features
+          '

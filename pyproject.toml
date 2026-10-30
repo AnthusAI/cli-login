@@ -14,6 +14,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "behave>=1.2.6", "ruff>=0.6"]
+linux = ["secretstorage>=3.3; sys_platform == 'linux'"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/anthus_cli_login"]

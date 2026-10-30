@@ -1,4 +1,4 @@
-@posix
+
 Feature: A renewable command-line session
   A person signs in once and the command-line tool keeps working without asking again, while every
   secret stays in the operating system's secure store and no token is ever shown.

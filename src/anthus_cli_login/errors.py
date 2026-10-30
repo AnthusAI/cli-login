@@ -7,6 +7,14 @@ class AuthError(ValueError):
     """A safe, operator-facing message; never include provider payloads or secrets."""
 
 
+class StoreUnavailable(AuthError):
+    """A secure store cannot be used here (absent, locked or blocked).
+
+    Choosing a store moves on to the next candidate; the message is the recovery guidance and never carries a
+    secret or a backend's raw text.
+    """
+
+
 class OAuthError(AuthError):
     """The provider refused or could not serve a token request."""
 
