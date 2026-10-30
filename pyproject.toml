@@ -19,7 +19,7 @@ dev = ["pytest>=8", "behave>=1.2.6", "ruff>=0.6"]
 packages = ["src/anthus_cli_login"]
 
 [tool.pytest.ini_options]
-testpaths = ["src"]
+testpaths = ["src", "infra"]
 python_files = ["*_test.py"]
 
 [tool.ruff]
