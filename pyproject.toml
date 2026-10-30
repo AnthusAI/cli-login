@@ -31,6 +31,7 @@ target-version = "py310"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/anthus_cli_login/__init__.py:__version__"]
 branch = "main"
 tag_format = "v{version}"
 allow_zero_version = true
