@@ -44,6 +44,7 @@ class Product:
         self.pages = ApprovalPages(self.broker.handle, authorize_endpoint=AUTHORIZE, product="Example", privileges="Act as you.")
         self.issued = {}  # authorization code -> (challenge, nonce) the provider issued it for
         self.wrong_nonce = False
+        self.approver_email = "person@example.test"
 
     # the person's browser ------------------------------------------------------------------------------------
 
@@ -88,7 +89,8 @@ class Product:
             if challenge is None or proof != challenge:
                 return 400, {"error": "invalid_grant"}, {}
             del self.issued[form["code"]]
-            return 200, {"id_token": jwt({"nonce": "another" if self.wrong_nonce else nonce}), "access_token": "access-token",
+            claims = {"nonce": "another" if self.wrong_nonce else nonce, "email": self.approver_email, "sub": "person-1"}
+            return 200, {"id_token": jwt(claims), "access_token": "access-token",
                          "refresh_token": "refresh-token", "expires_in": 3600}, {}
         raise AssertionError(url)
 
@@ -110,7 +112,8 @@ def run_cli(context, on_poll):
 
     try:
         remote_login(Target(), context.stored.append, http=product.http, out=context.printed.append,
-                     clock=lambda: product.now, sleep=sleep, host="cloud-box")
+                     clock=lambda: product.now, sleep=sleep, host="cloud-box",
+                     expected_email=getattr(context, "expected_email", None))
     except RemoteLoginError as error:
         context.error = error
 
@@ -121,9 +124,32 @@ def step_product(context):
     context.actions = []
 
 
+@given("the CLI expects to be signed in as {email}")
+def step_expect(context, email):
+    context.expected_email = email
+
+
 @when("the CLI starts a remote sign-in")
 def step_start(context):
     context.actions = []
+
+
+@when("{email} approves it first")
+@when("{email} approves it")
+def step_someone_approves(context, email):
+    context.product.approver_email = email
+    context.actions.append(lambda product, url: product.approve(url))
+    finish(context)
+
+
+@then("the CLI reports that someone else approved the sign-in")
+def step_someone_else(context):
+    assert context.error.code == "unexpected_identity"
+
+
+@then("the CLI printed that it is signed in as {email}")
+def step_signed_in_as(context, email):
+    assert context.printed[-1] == f"Signed in as {email}."
 
 
 def finish(context):

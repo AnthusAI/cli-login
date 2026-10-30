@@ -58,6 +58,20 @@ Feature: Remote sign-in from another device
     Then the CLI reports that the tokens were for a different request
     And no session is stored
 
+  Scenario: Someone who reads the link in chat and approves first does not get the session
+    Given the CLI expects to be signed in as person@example.test
+    When the CLI starts a remote sign-in
+    And intruder@example.test approves it first
+    Then the CLI reports that someone else approved the sign-in
+    And no session is stored
+
+  Scenario: The CLI says who it is signed in as
+    Given the CLI expects to be signed in as person@example.test
+    When the CLI starts a remote sign-in
+    And person@example.test approves it
+    Then the CLI stores one session
+    And the CLI printed that it is signed in as person@example.test
+
   Scenario: A caller that starts too many sign-ins is slowed down
     When one caller starts more sign-ins than the broker allows in a minute
     Then the broker refuses the extra one and says when to retry

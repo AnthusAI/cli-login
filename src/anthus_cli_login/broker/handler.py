@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import os
 import re
@@ -30,6 +31,7 @@ from .. import PROTOCOL_VERSION
 from . import throttle
 from .transactions import APPROVED, BOUND, DENIED, PENDING
 
+PRIVATE_MARKER = "private-v1"  # direct invocations from the product's pages carry {"cli_login": PRIVATE_MARKER}
 LIFETIME_SECONDS = 600
 INTERVAL_SECONDS = 5
 SLOW_DOWN_SECONDS = 5
@@ -41,7 +43,8 @@ TRANSACTION = re.compile(r"[A-Za-z0-9_-]{22}")
 
 
 def sha256_hex(value: str) -> str:
-    return hashlib.sha256(value.encode()).hexdigest()
+    # surrogatepass: a lone surrogate in caller input hashes to something that never matches, rather than raising
+    return hashlib.sha256(value.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def _https_url(value: str, name: str) -> str:
@@ -137,7 +140,13 @@ class Broker:
             "expires_at": now + LIFETIME_SECONDS,
             "interval": INTERVAL_SECONDS,
         }
-        if not self.store.create(item):
+        try:
+            created = self.store.create(item)
+        except Exception as error:
+            if _too_large(error):  # DynamoDB's own 400 KB item limit, not one of ours
+                return 400, {"error": "invalid_request", "field": "requester"}
+            raise
+        if not created:
             return 503, {"error": "temporarily_unavailable"}
         return 200, {
             "protocol": PROTOCOL_VERSION,
@@ -230,9 +239,13 @@ class Broker:
     # --- dispatch ---------------------------------------------------------------------------------------------
 
     def handle(self, event: dict[str, Any]) -> dict[str, Any]:
-        http = (event.get("requestContext") or {}).get("http")
-        if http is not None:
-            return self._http(event, http)
+        # Anything shaped like a function URL request is only ever routed to /start or /poll. A private operation
+        # needs an explicit marker and no request context at all, which a function URL request always has.
+        if "requestContext" in event:
+            http = (event.get("requestContext") or {}).get("http")
+            return self._http(event, http) if isinstance(http, dict) else _response(404, {"error": "not_found"})
+        if event.get("cli_login") != PRIVATE_MARKER:
+            return {"ok": False, "error": "unknown_operation"}
         operation = {"describe": self.describe, "bind": self.bind, "complete": self.complete, "deny": self.deny}.get(
             event.get("operation")
         )
@@ -247,16 +260,37 @@ class Broker:
             if event.get("isBase64Encoded"):
                 raw = base64.b64decode(raw).decode()
             body = json.loads(raw)
-        except (ValueError, UnicodeDecodeError):
+        except (ValueError, UnicodeDecodeError, RecursionError):
             return _response(400, {"error": "invalid_request"})
         if not isinstance(body, dict):
             return _response(400, {"error": "invalid_request"})
-        status, answer = route(body, str(http.get("sourceIp") or "unknown"))
+        try:
+            status, answer = route(body, caller_bucket(str(http.get("sourceIp") or "unknown")))
+        except (ValueError, TypeError, KeyError, RecursionError, UnicodeError):
+            return _response(400, {"error": "invalid_request"})
         return _response(status, answer)
 
 
+def _too_large(error: Exception) -> bool:
+    detail = (getattr(error, "response", None) or {}).get("Error") or {}
+    return detail.get("Code") == "ValidationException" and "size" in str(detail.get("Message", "")).lower()
+
+
+def caller_bucket(address: str) -> str:
+    """The rate-limit bucket for a caller: an IPv4 address, or an IPv6 /64, which one host can fill freely."""
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return address
+    if ip.version == 6:
+        if ip.ipv4_mapped is not None:
+            return str(ip.ipv4_mapped)
+        return str(ipaddress.ip_network(f"{ip}/64", strict=False))
+    return str(ip)
+
+
 def _response(status: int, body: dict[str, Any]) -> dict[str, Any]:
-    headers = {"content-type": "application/json", "cache-control": "no-store"}
+    headers = {"content-type": "application/json", "cache-control": "no-store", "x-content-type-options": "nosniff"}
     if status == 429:
         headers["retry-after"] = str(body.get("retry_after", 60))
     return {"statusCode": status, "headers": headers, "body": json.dumps(body)}

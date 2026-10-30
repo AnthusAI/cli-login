@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import secrets
 import socket
 import time
@@ -65,6 +66,21 @@ def _https(value: Any, what: str) -> str:
     return value
 
 
+MAX_INTERVAL = 60   # seconds between polls, whatever the broker says
+MAX_WAIT = 900      # seconds a CLI waits for an approval, whatever the broker says
+
+
+def _clamp(value: Any, default: float, low: float, high: float | None) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = default
+    if math.isnan(number):
+        number = default
+    number = max(number, low)
+    return min(number, high) if high is not None else number
+
+
 def _claims(token: Any) -> dict[str, Any]:
     """The payload of a JWT the CLI received straight from the token endpoint over TLS (no signature check here)."""
     try:
@@ -84,6 +100,7 @@ def remote_login(
     sleep: Callable[[float], None] = time.sleep,
     host: str | None = None,
     note: str | None = None,
+    expected_email: str | None = None,
     token=secrets.token_urlsafe,
 ):
     """Sign in through the target's broker and return what ``store_token_set`` returns.
@@ -91,6 +108,10 @@ def remote_login(
     ``target`` supplies ``client_id``, ``broker_endpoint``, ``token_endpoint`` and ``api_endpoint``, which names the
     binding to the broker and on the approval page. Nothing secret is printed: only the approval URL and the
     matching code.
+
+    Whoever approves first owns the session, and the approval URL and code are often relayed through chat. Pass
+    ``expected_email`` to refuse, and store nothing, when the person who approved is someone else. The signed-in
+    identity is always printed.
     """
     broker = getattr(target, "broker_endpoint", None)
     if not broker:
@@ -121,7 +142,14 @@ def remote_login(
     transaction, code = started.get("transaction"), started.get("matching_code")
     if not isinstance(transaction, str) or not isinstance(code, str):
         raise RemoteLoginError("invalid_broker_answer", "The broker answered an unusable transaction.")
-    interval, expires_at = max(int(started.get("interval") or 5), 1), int(started.get("expires_at") or clock() + 600)
+    url_origin = urllib.parse.urlsplit(url)
+    callback = getattr(target, "callback_uri", None)
+    if isinstance(callback, str) and callback.startswith("https://"):
+        expected_origin = urllib.parse.urlsplit(callback)
+        if (url_origin.scheme, url_origin.netloc) != (expected_origin.scheme, expected_origin.netloc):
+            raise RemoteLoginError("invalid_broker_answer", "The broker pointed at an approval page on another site.")
+    interval = _clamp(started.get("interval"), 5, 1, MAX_INTERVAL)
+    expires_at = min(_clamp(started.get("expires_at"), clock() + 600, 0, None), clock() + MAX_WAIT)
     out(f"To approve this sign-in, open {url}\nand check that the page shows the code {code}.")
 
     while True:
@@ -138,9 +166,9 @@ def remote_login(
         if error == "authorization_pending":
             continue
         if error == "slow_down":
-            interval = max(int(answer.get("interval") or interval + 5), interval + 1)
+            interval = min(max(_clamp(answer.get("interval"), interval + 5, 1, MAX_INTERVAL), interval + 1), MAX_INTERVAL)
         elif status == 429:
-            sleep(float(headers.get("retry-after") or answer.get("retry_after") or 60))
+            sleep(_clamp(headers.get("retry-after") or answer.get("retry_after"), 60, 1, MAX_INTERVAL))
         elif error == "access_denied":
             raise RemoteLoginError("access_denied", "The sign-in was denied on the approval page.")
         elif error == "expired_token":
@@ -167,6 +195,12 @@ def remote_login(
         raise RemoteLoginError("exchange_uncertain", "The sign-in provider did not answer; start the sign-in again.") from None
     if status != 200:
         raise RemoteLoginError(str(tokens.get("error") or "exchange_refused"), "The sign-in provider refused the code; start the sign-in again.")
-    if _claims(tokens.get("id_token")).get("nonce") != nonce:
+    claims = _claims(tokens.get("id_token"))
+    if claims.get("nonce") != nonce:
         raise RemoteLoginError("nonce_mismatch", "The sign-in answered tokens for a different request; nothing was saved.")
-    return store_token_set(tokens)
+    email = claims.get("email") if isinstance(claims.get("email"), str) else None
+    if expected_email is not None and (email or "").casefold() != expected_email.casefold():
+        raise RemoteLoginError("unexpected_identity", "Someone other than the expected person approved this sign-in; nothing was saved.")
+    record = store_token_set(tokens)
+    out(f"Signed in as {email or claims.get('sub', 'an unknown identity')}.")
+    return record

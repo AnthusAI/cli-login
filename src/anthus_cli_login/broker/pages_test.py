@@ -102,3 +102,34 @@ def test_deny_on_the_approval_page_denies_the_transaction():
     pages.approve("GET", {"t": transaction}, {}, {})
     pages.approve("POST", {}, {"t": transaction, "csrf": "token00", "action": "deny"}, {CSRF_COOKIE: "token00"})
     assert broker.store.get(transaction)["state"] == "denied"
+
+
+def test_the_approval_page_allows_the_sign_in_provider_as_a_form_target_and_forbids_sniffing():
+    _, pages, transaction = world()
+    page = pages.approve("GET", {"t": transaction}, {}, {})
+    csp = header(page, "Content-Security-Policy")
+    assert "form-action 'self' https://auth.example.test;" in csp and "frame-ancestors 'none'" in csp
+    assert header(page, "X-Content-Type-Options") == "nosniff"
+    assert header(approved(pages, transaction), "Content-Security-Policy") == csp
+
+
+def test_the_cookies_are_secure_prefixed_and_scoped():
+    _, pages, transaction = world()
+    page = pages.approve("GET", {"t": transaction}, {}, {})
+    csrf = next(v for k, v in page.headers if k == "Set-Cookie")
+    assert csrf.startswith("__Secure-") and "Secure" in csrf and "HttpOnly" in csrf and "SameSite=Strict" in csrf
+    nonce = next(v for k, v in approved(pages, transaction).headers if k == "Set-Cookie" and v.startswith(NONCE_COOKIE))
+    assert "Path=/cli/callback" in nonce and "SameSite=Lax" in nonce
+
+
+def test_the_approval_page_says_the_cli_will_be_signed_in_as_the_approver():
+    _, pages, transaction = world()
+    assert "The CLI will be signed in as you." in pages.approve("GET", {"t": transaction}, {}, {}).body
+
+
+def test_every_private_call_carries_the_marker():
+    calls = []
+    pages = ApprovalPages(lambda payload: calls.append(payload) or {"ok": False}, authorize_endpoint=AUTHORIZE, product="Example",
+                          privileges="Act as you.")
+    pages.approve("GET", {"t": "x"}, {}, {})
+    assert calls and all(call["cli_login"] == "private-v1" for call in calls)

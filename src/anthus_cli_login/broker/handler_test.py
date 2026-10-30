@@ -208,8 +208,54 @@ def test_a_function_url_request_cannot_reach_a_private_operation_through_its_bod
 def test_direct_invocations_dispatch_by_operation():
     b = broker()
     transaction = started(b)
-    assert b.handle({"operation": "describe", "transaction": transaction})["ok"] is True
-    assert b.handle({"operation": "unknown"}) == {"ok": False, "error": "unknown_operation"}
+    assert b.handle({"cli_login": "private-v1", "operation": "describe", "transaction": transaction})["ok"] is True
+    assert b.handle({"cli_login": "private-v1", "operation": "unknown"}) == {"ok": False, "error": "unknown_operation"}
+
+
+def test_a_private_operation_needs_its_marker_and_no_request_context():
+    b = broker()
+    transaction = started(b)
+    assert b.handle({"operation": "describe", "transaction": transaction})["ok"] is False
+    shaped = {"cli_login": "private-v1", "operation": "deny", "transaction": transaction, "requestContext": {}}
+    assert b.handle(shaped)["statusCode"] == 404
+    assert b.describe({"transaction": transaction})["ok"] is True
+
+
+def test_ipv6_callers_share_a_bucket_per_64_and_ipv4_mapped_callers_count_as_ipv4():
+    from anthus_cli_login.broker.handler import caller_bucket
+
+    assert caller_bucket("2001:db8:1:2::1") == caller_bucket("2001:db8:1:2:ffff::9") == "2001:db8:1:2::/64"
+    assert caller_bucket("2001:db8:1:3::1") != caller_bucket("2001:db8:1:2::1")
+    assert caller_bucket("::ffff:198.51.100.7") == caller_bucket("198.51.100.7") == "198.51.100.7"
+    assert caller_bucket("not-an-address") == "not-an-address"
+
+
+def test_malformed_input_answers_400_rather_than_failing():
+    b = broker()
+    transaction = started(b)
+    lone_surrogate = json.dumps({"transaction": transaction, "poll_secret": "\ud800"})
+    event = function_url("/poll", {})
+    event["body"] = lone_surrogate
+    assert b.handle(event)["statusCode"] == 400
+    deep = function_url("/start", {})
+    deep["body"] = "[" * 100000 + "]" * 100000
+    assert b.handle(deep)["statusCode"] == 400
+    assert b.handle(function_url("/start", start_body(requester={"host": 5, "version": "1"})))["statusCode"] == 400
+
+
+def test_a_request_over_the_stores_item_size_answers_400():
+    class TooLarge(Exception):
+        def __init__(self):
+            super().__init__("too large")
+            self.response = {"Error": {"Code": "ValidationException", "Message": "Item size has exceeded the maximum allowed size"}}
+
+    b = broker()
+    b.store.create = lambda item: (_ for _ in ()).throw(TooLarge())
+    assert b.start(start_body(), "ip") == (400, {"error": "invalid_request", "field": "requester"})
+
+
+def test_every_json_answer_forbids_sniffing():
+    assert broker().handle(function_url("/start", start_body()))["headers"]["x-content-type-options"] == "nosniff"
 
 
 def test_a_rate_limited_answer_says_when_to_retry():

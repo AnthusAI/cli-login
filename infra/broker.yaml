@@ -28,6 +28,22 @@ Parameters:
   InvokerRoleArn:
     Type: String
     Description: The product backend role that serves the two pages and may invoke describe, bind, complete and deny
+  ReservedConcurrency:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    Description: The most broker invocations at once; bounds what an abusive caller can cost, with the per-caller limits
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues: [7, 14, 30, 60, 90, 180, 365]
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: Optional SNS topic told when the broker is throttled
+
+Conditions:
+  HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
 
 Resources:
   Transactions:
@@ -66,10 +82,18 @@ Resources:
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
                 Resource: !GetAtt Transactions.Arn
 
+  BrokerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref LogRetentionDays
+
   Broker:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: python3.12
+      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      LoggingConfig:
+        LogGroup: !Ref BrokerLogs
       Handler: anthus_cli_login.broker.handler.lambda_handler
       Role: !GetAtt BrokerRole.Arn
       Timeout: 10
@@ -113,6 +137,23 @@ Resources:
       FunctionName: !Ref Broker
       Action: lambda:InvokeFunction
       Principal: !Ref InvokerRoleArn
+
+  ThrottledAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: The cli-login broker is being throttled at its reserved concurrency
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref Broker
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
 
 Outputs:
   BrokerEndpoint:

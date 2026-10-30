@@ -231,3 +231,69 @@ def test_a_broker_callback_that_differs_from_the_targets_is_refused():
     with pytest.raises(RemoteLoginError) as raised:
         World().login(target=target)
     assert raised.value.code == "invalid_broker_answer"
+
+
+def with_email(world, email):
+    original = world.http
+
+    def answer(method, url, **kwargs):
+        status, body, headers = original(method, url, **kwargs)
+        if url == TOKEN and status == 200:
+            body["id_token"] = jwt({"nonce": world.issued_nonce, "email": email, "sub": "person-1"})
+        return status, body, headers
+
+    world.http = answer
+    return world
+
+
+def test_an_approval_by_someone_other_than_the_expected_person_stores_nothing():
+    world, stored = with_email(World(), "intruder@example.test"), []
+    with pytest.raises(RemoteLoginError) as raised:
+        remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock, sleep=world.sleep,
+                     host="cloud-box", expected_email="Person@Example.test")
+    assert raised.value.code == "unexpected_identity" and stored == []
+
+
+def test_the_expected_person_signs_in_and_the_cli_says_who_it_is():
+    world, stored = with_email(World(), "person@example.test"), []
+    remote_login(Target(), stored.append, http=world.http, out=world.printed.append, clock=world.clock, sleep=world.sleep,
+                 host="cloud-box", expected_email="Person@Example.test")
+    assert len(stored) == 1 and world.printed[-1] == "Signed in as person@example.test."
+
+
+def test_broker_timing_is_clamped():
+    from anthus_cli_login.remote import MAX_INTERVAL, _clamp
+
+    assert _clamp("not a number", 5, 1, MAX_INTERVAL) == 5
+    assert _clamp(10_000, 5, 1, MAX_INTERVAL) == MAX_INTERVAL
+    assert _clamp(0, 5, 1, MAX_INTERVAL) == 1
+    assert _clamp(float("nan"), 5, 1, MAX_INTERVAL) == 5
+
+
+def test_a_broker_that_promises_a_long_wait_is_held_to_the_maximum():
+    world = World(approve_on_poll=10_000)
+    original = world.http
+
+    def far(method, url, **kwargs):
+        status, body, headers = original(method, url, **kwargs)
+        if url.endswith("/start"):
+            body["expires_at"] = world.now + 10**9
+            body["interval"] = 10**6
+        return status, body, headers
+
+    world.http = far
+    start = world.now
+    with pytest.raises(RemoteLoginError):
+        world.login()
+    assert world.now - start <= 900 + 60
+
+
+def test_an_approval_page_on_another_site_is_refused():
+    from anthus_cli_login.testing import make_target
+
+    target = make_target(api_endpoint=API, broker_endpoint=BROKER, token_endpoint=TOKEN,
+                         callback_uri="https://elsewhere.example.test/cli/callback")
+    world, stored = World(), []
+    with pytest.raises(RemoteLoginError) as raised:
+        world.login(target=target, stored=stored)
+    assert raised.value.code == "invalid_broker_answer" and world.polls == 0
