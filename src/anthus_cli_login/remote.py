@@ -105,8 +105,9 @@ def remote_login(
 ):
     """Sign in through the target's broker and return what ``store_token_set`` returns.
 
-    ``target`` supplies ``client_id``, ``broker_endpoint``, ``token_endpoint`` and ``api_endpoint``, which names the
-    binding to the broker and on the approval page. Nothing secret is printed: only the approval URL and the
+    ``target`` supplies ``client_id``, ``broker_endpoint``, ``remote_callback_uri``, ``token_endpoint`` and
+    ``api_endpoint``, which names the binding to the broker and on the approval page. The broker's ``redirect_uri``
+    must equal ``remote_callback_uri``, and its approval URL must be on that origin. Nothing secret is printed: only the approval URL and the
     matching code.
 
     Whoever approves first owns the session, and the approval URL and code are often relayed through chat. Pass
@@ -117,6 +118,11 @@ def remote_login(
     if not broker:
         raise RemoteLoginError("remote_unavailable", "This target has no remote sign-in broker; sign in on a machine with a browser.")
     broker = _https(broker, "broker endpoint").rstrip("/")
+    remote_callback = getattr(target, "remote_callback_uri", None)
+    if not remote_callback:
+        raise RemoteLoginError("remote_unavailable", "This target names no remote callback; sign in on a machine with a browser.")
+    remote_callback = _https(remote_callback, "remote callback URI")
+    expected_origin = urllib.parse.urlsplit(remote_callback)
     verifier, poll_secret, nonce = token(64), token(32), token(24)
     requester = {"host": host or socket.gethostname(), "version": __version__}
     if note:
@@ -143,11 +149,8 @@ def remote_login(
     if not isinstance(transaction, str) or not isinstance(code, str):
         raise RemoteLoginError("invalid_broker_answer", "The broker answered an unusable transaction.")
     url_origin = urllib.parse.urlsplit(url)
-    callback = getattr(target, "callback_uri", None)
-    if isinstance(callback, str) and callback.startswith("https://"):
-        expected_origin = urllib.parse.urlsplit(callback)
-        if (url_origin.scheme, url_origin.netloc) != (expected_origin.scheme, expected_origin.netloc):
-            raise RemoteLoginError("invalid_broker_answer", "The broker pointed at an approval page on another site.")
+    if (url_origin.scheme, url_origin.netloc) != (expected_origin.scheme, expected_origin.netloc):
+        raise RemoteLoginError("invalid_broker_answer", "The broker pointed at an approval page on another site.")
     interval = _clamp(started.get("interval"), 5, 1, MAX_INTERVAL)
     expires_at = min(_clamp(started.get("expires_at"), clock() + 600, 0, None), clock() + MAX_WAIT)
     out(f"To approve this sign-in, open {url}\nand check that the page shows the code {code}.")
@@ -177,8 +180,7 @@ def remote_login(
             raise RemoteLoginError(error or "poll_refused", "The sign-in broker refused the sign-in.")
 
     authorization_code, redirect_uri = answer.get("code"), _https(answer.get("redirect_uri"), "redirect URI")
-    expected = getattr(target, "callback_uri", None)
-    if isinstance(expected, str) and expected.startswith("https://") and redirect_uri != expected:
+    if redirect_uri != remote_callback:
         raise RemoteLoginError("invalid_broker_answer", "The broker answered a callback this target does not use.")
     if not isinstance(authorization_code, str) or not authorization_code:
         raise RemoteLoginError("invalid_broker_answer", "The broker answered without a code.")

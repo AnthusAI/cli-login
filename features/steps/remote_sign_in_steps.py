@@ -25,6 +25,7 @@ class Target:
     api_endpoint: str = API
     broker_endpoint: str = BROKER
     token_endpoint: str = TOKEN
+    remote_callback_uri: str | None = "https://app.example.test/cli/callback"
 
 
 def jwt(claims):

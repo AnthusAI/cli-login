@@ -3,7 +3,7 @@
   "title": "Require a separate remote callback URI on Target whenever a broker is configured",
   "description": "From the security review of #2 (finding 5). Owner: Papyrus session (target.py). Add Target.remote_callback_uri (HTTPS), required whenever broker_endpoint is set, so remote sign-in always checks the broker's redirect_uri and the approval_url's origin, including for targets whose callback_uri is a loopback URL. Then remote.py switches its two checks from callback_uri to remote_callback_uri (Cyclotron session).",
   "type": "task",
-  "status": "in_progress",
+  "status": "closed",
   "priority": 1,
   "assignee": null,
   "creator": null,
@@ -17,11 +17,18 @@
       "text": "Branch feature/remote-callback-uri: Target.remote_callback_uri (HTTPS), required whenever broker_endpoint is set and refused without one; features/target.feature; specs in target_test.py. After it merges, remote.py checks the broker's redirect_uri against it (Cyclotron session).",
       "created_at": "2026-10-30T11:56:05.852662Z",
       "comment_type": "default"
+    },
+    {
+      "id": "8bd1d6d8-d012-4a3b-9241-e92e6984aa41",
+      "author": "home",
+      "text": "Completed: Target.remote_callback_uri landed in AnthusAI/cli-login#3 (Papyrus session); remote.py now checks the broker's redirect_uri and the approval URL's origin against it for every target, loopback or not, and refuses a remote sign-in for a target without one (fix/remote-callback-uri PR).",
+      "created_at": "2026-10-30T12:00:38.671890Z",
+      "comment_type": "default"
     }
   ],
   "created_at": "2026-10-30T11:54:51.454172Z",
-  "updated_at": "2026-10-30T11:56:05.852871Z",
-  "closed_at": null,
+  "updated_at": "2026-10-30T12:00:38.686840Z",
+  "closed_at": "2026-10-30T12:00:38.686713Z",
   "right_now_summary": null,
   "right_now_updated_at": null,
   "custom": {}
