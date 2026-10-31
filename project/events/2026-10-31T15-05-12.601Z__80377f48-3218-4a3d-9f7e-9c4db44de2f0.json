@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "event_id": "80377f48-3218-4a3d-9f7e-9c4db44de2f0",
+  "issue_id": "cli-login-79ca92d5-4534-4bea-bfe1-aaeaa5037b49",
+  "event_type": "issue_created",
+  "occurred_at": "2026-10-31T15:05:12.601Z",
+  "actor_id": "home",
+  "payload": {
+    "title": "Document a 7-day refresh token as the default app client setting",
+    "description": "Ryan (2026-10-31): one week (seven days) should be the default refresh-token lifetime for the product app clients that cli-login signs in with. Access and ID tokens stay at 60 minutes. cli-login creates no Cognito client, so the default is the documented app client setup in README.md and docs/design.md.\n\nDone when:\n- README.md has a section listing the app client settings: code flow, PKCE, no client secret, refresh 7 days, access and ID 60 minutes, token revocation on, and exact callbacks with a fixed loopback port.\n- The security-limits bullet names the 7-day window.\n- docs/design.md points to that section.",
+    "issue_type": "story",
+    "status": "open",
+    "priority": 2,
+    "assignee": null,
+    "parent": "cli-login-333326d6-56fb-48cc-bee1-b2a349b145a4",
+    "labels": [],
+    "agent": {
+      "platform": "claude_code",
+      "model": "claude-opus-5-5",
+      "name": "Prospectus implementation"
+    }
+  }
+}
