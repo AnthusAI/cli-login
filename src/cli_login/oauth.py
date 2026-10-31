@@ -32,6 +32,7 @@ def authorization_url(
     challenge: str,
     identity_provider: str | None = None,
     scope: str = "openid email profile",
+    nonce: str | None = None,
 ) -> str:
     fields = {
         "response_type": "code",
@@ -44,6 +45,8 @@ def authorization_url(
     }
     if identity_provider:
         fields["identity_provider"] = identity_provider
+    if nonce:
+        fields["nonce"] = nonce
     return target.authorize_endpoint + "?" + urllib.parse.urlencode(fields)
 
 
