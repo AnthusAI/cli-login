@@ -8,7 +8,7 @@ import math
 import secrets
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
 from .errors import AuthError, OAuthError
 from .locks import default_state_dir, key_lock
@@ -203,12 +203,10 @@ class Session:
 
     def _revoke_quietly(self, response):
         """Best effort: an unsaved login must not leave a live refresh token behind."""
-        try:
-            refresh = response.get("refresh_token")
-            if isinstance(refresh, str) and refresh:
+        refresh = response.get("refresh_token")
+        if isinstance(refresh, str) and refresh:
+            with suppress(AuthError, OSError):  # OAuthError is an AuthError; the original failure is what matters
                 self.provider.post(self.target.revoke_endpoint, {"client_id": self.target.client_id, "token": refresh})
-        except Exception:
-            pass
 
     def headers(self, endpoint):
         if endpoint != self.target.api_endpoint:

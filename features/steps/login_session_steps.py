@@ -259,7 +259,7 @@ def sign_in_with_enrollment(context):
 def try_sign_in_with_enrollment(context):
     try:
         context.session.login(prepare=context.prepare, enroll=context.enroll)
-    except Exception as error:  # the scenario asserts which error
+    except (AuthError, RuntimeError) as error:  # the scenario asserts which error
         context.refusal = error
         context.refusal_code = getattr(error, "code", None) or str(error)
 
