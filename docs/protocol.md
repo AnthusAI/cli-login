@@ -102,6 +102,12 @@ The CLI checks:
 
 It then passes the response to the session store, which checks issuer, audience, `token_use` and expiry.
 
+The local loopback sign-in (`Session.login`, not part of the broker protocol) offers the same enrollment through
+`prepare=` and `enroll=`. `prepare(state)` returns `(nonce, enrollment)` before the authorize URL is built; the nonce
+is sent as the OpenID `nonce`, and the ID token must carry it back or the login is refused (`nonce_mismatch`).
+`enroll(tokens, state, enrollment)` then runs before anything is stored, and if it raises the tokens are discarded
+and the refresh token is revoked on a best-effort basis.
+
 A network failure during the exchange is **not** retried, because the code may already be spent. The CLI starts
 again.
 

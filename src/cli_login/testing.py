@@ -27,7 +27,7 @@ def make_target(**overrides) -> Target:
     return Target(**values)
 
 
-def make_id_token(now, *, subject="person-1", issuer=ISSUER, audience=CLIENT_ID, token_use="id", lifetime=3600):
+def make_id_token(now, *, subject="person-1", issuer=ISSUER, audience=CLIENT_ID, token_use="id", lifetime=3600, nonce=None):
     claims = {
         "iss": issuer,
         "aud": audience,
@@ -36,6 +36,8 @@ def make_id_token(now, *, subject="person-1", issuer=ISSUER, audience=CLIENT_ID,
         "exp": now + lifetime,
         "email": "person@example.test",
     }
+    if nonce is not None:
+        claims["nonce"] = nonce
 
     def encode(value):
         return base64.urlsafe_b64encode(json.dumps(value).encode()).decode().rstrip("=")
@@ -95,6 +97,7 @@ class FakeProvider:
         self.failure = None
         self.revocation_failure = False
         self.issuer = ISSUER
+        self.nonce = None  # put into the ID token's `nonce` claim when set
 
     def post(self, url, fields):
         self.calls.append((url, fields))
@@ -105,7 +108,7 @@ class FakeProvider:
         if self.failure:
             raise self.failure
         return {
-            "id_token": make_id_token(self.clock(), subject=self.subject, issuer=self.issuer),
+            "id_token": make_id_token(self.clock(), subject=self.subject, issuer=self.issuer, nonce=self.nonce),
             "access_token": make_access_token(self.clock(), subject=self.subject, issuer=self.issuer),
             "refresh_token": "refresh-secret-" + str(len(self.calls)),
             "expires_in": 3600,

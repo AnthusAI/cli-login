@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from .errors import AuthError, OAuthError
 from .locks import default_state_dir, key_lock
 from .oauth import HTTPProvider, authorization_url, pkce_pair, receive_code
+from .remote import RemoteLoginError, _claims
 from .stores import open_store
 from .target import Target
 
@@ -150,13 +151,31 @@ class Session:
         self._token, self._expires, self._subject = value, expires, record["subject"]
         return {"subject": record["subject"], "label": record["label"], "created_at": record["created_at"]}
 
-    def login(self) -> dict:
-        """Local browser sign-in on the target's loopback callback."""
+    def login(self, *, prepare=None, enroll=None) -> dict:
+        """Local browser sign-in on the target's loopback callback.
+
+        For a product whose sign-in enrolls each login (the Cyclotron lab enrolls each Cognito login at Prospectus),
+        two optional hooks mirror ``remote_login``'s ``enroll``:
+
+        ``prepare(state)`` runs once ``state`` and PKCE exist, before the authorize URL is built. It gets the raw
+        ``state`` and returns ``(nonce, enrollment)``. The nonce becomes the OpenID ``nonce`` authorize parameter, and
+        the ID token must carry it back or nothing is saved. ``enrollment`` is opaque to this library.
+
+        ``enroll(tokens, state, enrollment)`` runs after the token exchange and the nonce check, before anything is
+        stored. If it raises, the tokens are discarded, the refresh token is revoked on a best-effort basis, and
+        nothing is stored. With neither hook, sign-in is unchanged."""
         if not self.target.has_loopback_callback:
             raise AuthError("Local sign-in needs a loopback callback; this target's callback is not one.")
         state = secrets.token_urlsafe(32)
         verifier, challenge = pkce_pair()
-        url = authorization_url(self.target, state=state, challenge=challenge, identity_provider=self.identity_provider)
+        nonce = enrollment = None
+        if prepare is not None:
+            nonce, enrollment = prepare(state)
+            if not isinstance(nonce, str) or not nonce:
+                raise ValueError("prepare must return (nonce, enrollment) with a non-empty nonce string")
+        url = authorization_url(
+            self.target, state=state, challenge=challenge, identity_provider=self.identity_provider, nonce=nonce
+        )
         code = self.receive(self.target.callback_uri, url, state, 180.0)
         with self._hold():
             response = self.provider.post(
@@ -169,7 +188,27 @@ class Session:
                     "code_verifier": verifier,
                 },
             )
+            if nonce is not None or enroll is not None:
+                try:
+                    if nonce is not None and _claims(response.get("id_token")).get("nonce") != nonce:
+                        raise RemoteLoginError(
+                            "nonce_mismatch", "The sign-in answered tokens for a different request; nothing was saved."
+                        )
+                    if enroll is not None:
+                        enroll(response, state, enrollment)
+                except BaseException:
+                    self._revoke_quietly(response)
+                    raise
             return self.store_token_set(response)
+
+    def _revoke_quietly(self, response):
+        """Best effort: an unsaved login must not leave a live refresh token behind."""
+        try:
+            refresh = response.get("refresh_token")
+            if isinstance(refresh, str) and refresh:
+                self.provider.post(self.target.revoke_endpoint, {"client_id": self.target.client_id, "token": refresh})
+        except Exception:
+            pass
 
     def headers(self, endpoint):
         if endpoint != self.target.api_endpoint:
