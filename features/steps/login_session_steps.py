@@ -31,8 +31,9 @@ def isolated(context):
     context.provider = FakeProvider(context.clock)
     context.browsers = []
 
-    def receive(*args):
+    def receive(callback, url, state, timeout):
         context.browsers.append("browser")
+        context.authorize_url, context.state = url, state
         return "fixture-code"
 
     context.receive = receive
@@ -200,3 +201,96 @@ def guidance(context):
 @then("the provider is not contacted")
 def not_contacted(context):
     assert len(context.provider.calls) == context.calls_before
+
+
+@then("the sign-in request carries no nonce")
+def carries_no_nonce(context):
+    assert "nonce" not in context.authorize_url
+
+
+@given("the product prepares an enrollment with a nonce")
+def product_prepares(context):
+    context.enroll_log = {}
+    context.provider.nonce = "product-nonce"
+    context.fail_enroll = False
+
+    def prepare(state):
+        context.enroll_log["prepare_state"] = state
+        return "product-nonce", {"opaque": "enrollment"}
+
+    def enroll(tokens, state, enrollment):
+        context.enroll_log.update(state=state, enrollment=enrollment, stored=context.store.get(context.target.key))
+        if context.fail_enroll:
+            raise RuntimeError("enrollment failed")
+
+    context.prepare, context.enroll = prepare, enroll
+
+    def receive(callback, url, state, timeout):
+        context.authorize_url, context.state = url, state
+        return "fixture-code"
+
+    context.session = Session(
+        context.target,
+        store=context.store,
+        provider=context.provider,
+        clock=context.clock,
+        receive=receive,
+        state_dir=context.state_dir,
+        login_command="tool login",
+    )
+
+
+@given("the provider answers tokens for a different nonce")
+def different_nonce(context):
+    context.provider.nonce = "someone-elses-nonce"
+
+
+@given("enrollment will fail")
+def enrollment_fails(context):
+    context.fail_enroll = True
+
+
+@when("the person completes the local sign-in with enrollment")
+def sign_in_with_enrollment(context):
+    context.identity = context.session.login(prepare=context.prepare, enroll=context.enroll)
+
+
+@when("the person tries the local sign-in with enrollment")
+def try_sign_in_with_enrollment(context):
+    try:
+        context.session.login(prepare=context.prepare, enroll=context.enroll)
+    except (AuthError, RuntimeError) as error:  # the scenario asserts which error
+        context.refusal = error
+        context.refusal_code = getattr(error, "code", None) or str(error)
+
+
+@then("the sign-in request carries the product's nonce")
+def carries_nonce(context):
+    assert "nonce=product-nonce" in context.authorize_url
+
+
+@then("enrollment ran with the raw state and the opaque enrollment")
+def enrollment_ran(context):
+    assert context.enroll_log["state"] == context.enroll_log["prepare_state"] == context.state
+    assert context.enroll_log["enrollment"] == {"opaque": "enrollment"}
+
+
+@then("the secure store held nothing while enrolling")
+def nothing_while_enrolling(context):
+    assert context.enroll_log["stored"] is None
+
+
+@then('the sign-in is refused with "{code}"')
+def refused_with(context, code):
+    assert code in context.refusal_code
+
+
+@then("the secure store holds no session")
+def holds_no_session(context):
+    assert context.store.get(context.target.key) is None
+
+
+@then("the refresh token was revoked")
+def refresh_revoked(context):
+    url, fields = context.provider.calls[-1]
+    assert url == context.target.revoke_endpoint and fields["token"].startswith("refresh-secret")

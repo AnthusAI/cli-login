@@ -63,3 +63,36 @@ Feature: A renewable command-line session
     When the secure store is locked
     Then asking for headers fails with recovery guidance
     And the provider is not contacted
+
+  Scenario: Local sign-in without enrollment hooks is unchanged
+    Given a target with an isolated provider and secure store
+    When the person completes the local sign-in
+    Then the sign-in request carries no nonce
+    And the secure store holds the session
+
+  Scenario: Local sign-in enrolls the login before storing it
+    Given a target with an isolated provider and secure store
+    And the product prepares an enrollment with a nonce
+    When the person completes the local sign-in with enrollment
+    Then the sign-in request carries the product's nonce
+    And enrollment ran with the raw state and the opaque enrollment
+    And the secure store held nothing while enrolling
+    And the secure store holds the session
+
+  Scenario: A sign-in answered for a different nonce is refused
+    Given a target with an isolated provider and secure store
+    And the product prepares an enrollment with a nonce
+    And the provider answers tokens for a different nonce
+    When the person tries the local sign-in with enrollment
+    Then the sign-in is refused with "nonce_mismatch"
+    And the secure store holds no session
+    And the refresh token was revoked
+
+  Scenario: A failed enrollment stores nothing and revokes the refresh token
+    Given a target with an isolated provider and secure store
+    And the product prepares an enrollment with a nonce
+    And enrollment will fail
+    When the person tries the local sign-in with enrollment
+    Then the sign-in is refused with "enrollment failed"
+    And the secure store holds no session
+    And the refresh token was revoked

@@ -90,12 +90,36 @@ except RemoteLoginError as error:
 
 It prints the approval URL and a short matching code, polls until the person approves, and stores the session.
 
+### Enrolling each login
+
+A product whose sign-in must enroll each login somewhere else (the Cyclotron lab enrolls each Cognito login at
+Prospectus) passes `enroll` to `remote_login`, and `prepare` and `enroll` to the local `Session.login`. Both hooks
+are optional, and sign-in is unchanged without them.
+
+```python
+def prepare(state):
+    # `state` is the raw state. Hash it however the product needs.
+    nonce, enrollment = my_product.begin_enrollment(state)
+    return nonce, enrollment            # `enrollment` is opaque to cli-login
+
+def enroll(tokens, state, enrollment):  # remote_login passes the transaction where this has the state
+    my_product.finish_enrollment(tokens, enrollment)   # raise to refuse the login
+
+session.login(prepare=prepare, enroll=enroll)
+```
+
+`prepare(state)` runs after the state and PKCE exist and before the authorize URL is built. The nonce it returns is
+sent as the OpenID `nonce`, and the ID token must carry it back, or the login is refused with `nonce_mismatch`
+(`remote_login` applies the same rule). `enroll(tokens, state, enrollment)` runs after the exchange and the nonce
+check and before anything is stored. If it raises, nothing is stored, the tokens are discarded and the refresh
+token is revoked on a best-effort basis. The library never reads the contents of `enrollment`.
+
 ## How it works
 
 ### Local browser sign-in
 
 `Session.login()` makes a random `state` and a PKCE verifier, then opens the provider's authorization URL with the
-S256 challenge. It listens on the target's loopback callback (a fixed port on `127.0.0.1` or `localhost`) for the
+S256 challenge (and the product's `nonce`, if a `prepare` hook supplied one). It listens on the target's loopback callback (a fixed port on `127.0.0.1` or `localhost`) for the
 code, checks `state`, and exchanges the code and verifier at the token endpoint. Before saving anything it checks
 that the ID token's issuer, audience, token type, subject and expiry match the target.
 

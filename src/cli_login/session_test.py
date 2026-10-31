@@ -3,6 +3,7 @@ import json
 import pytest
 
 from .errors import AuthError, OAuthError
+from .remote import RemoteLoginError
 from .session import Session
 from .testing import FakeClock, FakeProvider, FakeStore, make_id_token, make_target
 
@@ -283,3 +284,74 @@ def test_a_session_names_only_known_token_choices():
         Session(make_target(), store=FakeStore(), api_token="refresh")
     with pytest.raises(ValueError):
         Session(make_target(), store=FakeStore(), authorization_scheme="Basic")
+
+
+def test_login_without_hooks_sends_no_nonce_and_is_unchanged(world):
+    target, _clock, store, _provider, seen, new = world
+    new().login()
+    assert "nonce" not in seen["url"]
+    assert json.loads(store.get(target.key))["subject"] == "person-1"
+
+
+def test_prepare_and_enroll_put_the_nonce_in_the_url_and_store_only_after_enroll(world):
+    target, _clock, store, provider, seen, new = world
+    provider.nonce = "product-nonce"
+    steps = []
+
+    def prepare(state):
+        steps.append(("prepare", state, store.get(target.key)))
+        return "product-nonce", {"opaque": "enrollment"}
+
+    def enroll(tokens, state, enrollment):
+        steps.append(("enroll", state, enrollment, store.get(target.key), tokens["refresh_token"]))
+
+    new().login(prepare=prepare, enroll=enroll)
+    assert "nonce=product-nonce" in seen["url"]
+    assert [step[0] for step in steps] == ["prepare", "enroll"]
+    assert steps[0][1] == steps[1][1] == seen["state"]  # the raw state, both times
+    assert steps[1][2] == {"opaque": "enrollment"}
+    assert steps[1][3] is None  # nothing stored while enrolling
+    assert json.loads(store.get(target.key))["refresh_token"] == steps[1][4]
+
+
+def test_a_nonce_mismatch_is_refused_and_nothing_is_stored(world):
+    target, _clock, store, provider, _seen, new = world
+    provider.nonce = "someone-elses-nonce"
+    enrolled = []
+    with pytest.raises(RemoteLoginError) as error:
+        new().login(prepare=lambda state: ("product-nonce", None), enroll=lambda *a: enrolled.append(a))
+    assert error.value.code == "nonce_mismatch"
+    assert enrolled == [] and store.get(target.key) is None
+    assert provider.calls[-1][0] == target.revoke_endpoint
+
+
+def test_a_missing_nonce_claim_is_refused(world):
+    target, _clock, store, _provider, _seen, new = world
+    with pytest.raises(RemoteLoginError, match="nothing was saved"):
+        new().login(prepare=lambda state: ("product-nonce", None))
+    assert store.get(target.key) is None
+
+
+def test_enroll_raising_stores_nothing_and_revokes_the_refresh_token(world):
+    target, _clock, store, provider, _seen, new = world
+
+    def enroll(tokens, state, enrollment):
+        raise RuntimeError("enrollment refused")
+
+    with pytest.raises(RuntimeError, match="enrollment refused"):
+        new().login(enroll=enroll)
+    assert store.get(target.key) is None
+    url, fields = provider.calls[-1]
+    assert url == target.revoke_endpoint and fields["token"] == "refresh-secret-1"
+
+
+def test_a_failed_revoke_does_not_hide_the_enroll_error(world):
+    target, _clock, store, provider, _seen, new = world
+    provider.revocation_failure = True
+
+    def enroll(tokens, state, enrollment):
+        raise RuntimeError("enrollment refused")
+
+    with pytest.raises(RuntimeError, match="enrollment refused"):
+        new().login(enroll=enroll)
+    assert store.get(target.key) is None
