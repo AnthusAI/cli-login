@@ -41,7 +41,7 @@ A product describes one **target**:
 
 The library does the rest:
 
-- **Local sign-in.** PKCE (S256), a loopback callback on a free port, state and nonce, and the token
+- **Local sign-in.** PKCE (S256), a loopback callback on a fixed, registered port, state and nonce, and the token
   exchange. It checks each token's issuer, client, `token_use`, expiry and nonce.
 - **Remote sign-in.** It calls the broker's `/start`, prints the approval URL and matching code, polls `/poll`
   at the interval given, waits longer on `slow_down`, and exchanges the code (see the protocol below).
@@ -151,6 +151,9 @@ What this guarantees:
   The requester label and the matching code are the defence.
 
 ## A product's API
+
+The product's app client defaults to a 7-day refresh token with 60-minute access and ID tokens, code flow with PKCE
+and no secret; see [the README](../README.md#the-products-app-client).
 
 The CLI calls the product's API with `Authorization: Bearer <access token>`. The API verifies the token as it
 would for a browser session. A request that carries both a cookie and a bearer token is refused.
