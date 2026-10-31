@@ -206,6 +206,26 @@ Each product deployment runs one broker, built from `infra/broker.yaml`.
 The broker and the approval pages must run the same cli-login version. Products should pin an exact version, since
 releases before 1.0 may change behaviour.
 
+## The product's app client
+
+cli-login creates no Cognito client; each product signs its CLI in with an app client it defines. Use these settings
+unless the product has a reviewed reason not to:
+
+| Setting | Default |
+| --- | --- |
+| OAuth flow | Authorization code only, with PKCE (S256) |
+| Client secret | None (a public client) |
+| Explicit auth flows | `ALLOW_REFRESH_TOKEN_AUTH` only |
+| Refresh token | 7 days |
+| Access and ID tokens | 60 minutes |
+| Token revocation | On, so `logout()` can revoke the refresh token |
+| Callbacks | Exact URLs: one fixed loopback port for local sign-in and `https://<product-domain>/cli/callback` for remote sign-in |
+
+Seven days lets an agent on a cloud machine keep working for a week without a person signing in again, while a
+lost or leaked refresh token stops working within the week. Access tokens stay short, so an API sees a revocation
+within an hour. Cognito matches callbacks exactly, with no port wildcard, so the loopback port is fixed and
+registered.
+
 ## Where sessions are stored
 
 Sessions live only in a secure store, tried in this order. There is no plaintext fallback: if nothing is
@@ -260,7 +280,7 @@ as with ssh-agent.
   requester label, the matching code the approver must confirm, and `expected_email` narrow the risk. They do not
   remove it, and the CLI always prints the identity it signed in as.
 - **Tokens can leak.** They are short-lived and renewable, and logout revokes the refresh token. A stolen refresh
-  token works until it expires or is revoked.
+  token works until it is revoked or expires (7 days with the default app client).
 - **The broker never holds a token.** It holds an authorization code until the right CLI collects it, and the
   code is useless without the verifier.
 - **Cognito only, for now.** The library targets Amazon Cognito user pools with the authorization-code flow and PKCE.
